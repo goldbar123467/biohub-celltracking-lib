@@ -1,7 +1,12 @@
 from __future__ import annotations
 
+import math
+
+import pytest
+
 from biohub_ct.data.schema import Edge, Graph, Node
 from biohub_ct.metrics.edge import evaluate_edges, match_nodes
+from biohub_ct.metrics.official_adapter import evaluate_official
 
 
 SCALE = (1.625, 0.40625, 0.40625)
@@ -17,6 +22,24 @@ def line_graph(offset_x: int = 0) -> Graph:
     )
 
 
+def assert_edge_parity(pred: Graph, gt: Graph, total_true_nodes: int | float) -> None:
+    local = evaluate_edges(pred, gt, scale=SCALE, total_true_nodes=total_true_nodes)
+    official = evaluate_official(pred, gt, scale=SCALE, total_true_nodes=total_true_nodes)
+    assert local.edge_tp == official.edge_tp
+    assert local.edge_fp == official.edge_fp
+    assert local.edge_fn == official.edge_fn
+    assert local.num_pred_nodes == official.num_pred_nodes
+    assert_float_parity(local.edge_jaccard, official.edge_jaccard)
+    assert_float_parity(local.adjusted_edge_jaccard, official.adjusted_edge_jaccard)
+
+
+def assert_float_parity(local: float, official: float) -> None:
+    if math.isnan(local):
+        assert math.isnan(official)
+    else:
+        assert local == pytest.approx(official)
+
+
 def test_perfect_edge_graph_scores_one():
     result = evaluate_edges(line_graph(), line_graph(), scale=SCALE, total_true_nodes=2)
     assert result.edge_tp == 1
@@ -24,16 +47,19 @@ def test_perfect_edge_graph_scores_one():
     assert result.edge_fn == 0
     assert result.edge_jaccard == 1.0
     assert result.adjusted_edge_jaccard == 1.0
+    assert_edge_parity(line_graph(), line_graph(), total_true_nodes=2)
 
 
 def test_shifted_nodes_within_7_microns_match():
     matches = match_nodes(line_graph(offset_x=10), line_graph(), scale=SCALE, max_distance=7.0)
     assert matches.pred_to_gt == {1: 1, 2: 2}
+    assert_edge_parity(line_graph(offset_x=10), line_graph(), total_true_nodes=2)
 
 
 def test_shifted_nodes_outside_7_microns_do_not_match():
     matches = match_nodes(line_graph(offset_x=20), line_graph(), scale=SCALE, max_distance=7.0)
     assert matches.pred_to_gt == {}
+    assert_edge_parity(line_graph(offset_x=20), line_graph(), total_true_nodes=2)
 
 
 def test_duplicate_edges_do_not_inflate_true_positives():
@@ -47,6 +73,7 @@ def test_duplicate_edges_do_not_inflate_true_positives():
     assert result.edge_tp == 1
     assert result.edge_fp == 0
     assert result.edge_jaccard == 1.0
+    assert_edge_parity(pred, line_graph(), total_true_nodes=2)
 
 
 def test_spurious_edge_touching_annotated_node_counts_as_fp():
@@ -65,6 +92,7 @@ def test_spurious_edge_touching_annotated_node_counts_as_fp():
     assert result.edge_tp == 0
     assert result.edge_fp == 1
     assert result.edge_fn == 1
+    assert_edge_parity(pred, gt, total_true_nodes=3)
 
 
 def test_unannotated_region_edges_are_ignored_but_nodes_affect_penalty():
@@ -86,10 +114,11 @@ def test_unannotated_region_edges_are_ignored_but_nodes_affect_penalty():
     assert result.edge_fn == 0
     assert result.edge_jaccard == 1.0
     assert result.adjusted_edge_jaccard == 0.9
+    assert_edge_parity(pred, gt, total_true_nodes=2)
 
 
 def test_node_count_penalty_can_reward_underprediction_as_official_formula_does():
     result = evaluate_edges(line_graph(), line_graph(), scale=SCALE, total_true_nodes=4)
     assert result.total_node_ratio == -0.5
     assert result.adjusted_edge_jaccard == 1.05
-
+    assert_edge_parity(line_graph(), line_graph(), total_true_nodes=4)

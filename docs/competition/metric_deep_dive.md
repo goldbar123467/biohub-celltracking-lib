@@ -39,10 +39,32 @@ Predicted divisions in unannotated regions are ignored. Predicted divisions matc
 
 The final score is adjusted edge Jaccard plus `0.1 * division_jaccard` when divisions are present. Edge agreement and node-count calibration are the main optimization targets.
 
+## Official Parity Status
+
+Status on 2026-07-03: synthetic parity is passing against the installed organizer package from `royerlab/kaggle-cell-tracking-competition@016845f`.
+
+Commands:
+
+```bash
+python -m pytest tests/test_metric_synthetic.py tests/test_division_cases.py -q
+python -m biohub_ct.metrics.probes --official
+```
+
+Coverage:
+
+- edge TP/FP/FN and Jaccard;
+- duplicate edge dedupe;
+- 7 um node matching inside/outside threshold;
+- sparse-GT ignored unannotated edges;
+- spurious edges touching annotated regions;
+- adjusted edge Jaccard node-count penalty;
+- division TP/FN/FP behavior for component coverage and annotated-region false forks.
+
+Known mismatches: none in the current synthetic cases. Remaining risk: parity has not yet been checked on full real GEFF/Zarr train datasets in this workspace because real competition data are not present locally.
+
 ## Pathological Cases
 
 - Duplicate predicted edges can fake high TP unless deduped.
 - Dense detections can preserve edge Jaccard while losing adjusted score through node count.
 - A naive exact-time division scorer can reject valid temporally shifted forks.
 - Spurious forks near annotated continuing tracks can create division FP.
-

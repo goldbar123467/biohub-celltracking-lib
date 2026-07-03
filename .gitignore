@@ -11,5 +11,5 @@ dist/
 submission.csv
 runs/
 outputs/
-data/
-splits.json
+/data/
+/splits.json

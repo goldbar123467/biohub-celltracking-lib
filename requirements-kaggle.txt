@@ -1,0 +1,6 @@
+numpy
+zarr
+scipy
+scikit-image
+pandas
+

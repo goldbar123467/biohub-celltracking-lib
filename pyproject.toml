@@ -1,0 +1,44 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/biohub_ct"]
+
+[project]
+name = "biohub-celltracking-lib"
+version = "0.1.0"
+description = "Competition library for Biohub Cell Tracking During Development"
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+license = "MIT"
+dependencies = [
+    "numpy>=1.26",
+]
+
+[project.optional-dependencies]
+kaggle = [
+    "zarr>=3.0",
+    "scipy",
+    "scikit-image",
+    "pandas",
+]
+official-metric = [
+    "polars",
+    "tracksdata @ git+https://github.com/royerlab/tracksdata@main",
+]
+dev = [
+    "pytest>=8",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+src = ["src", "tests"]

@@ -1,0 +1,14 @@
+{
+  "id": "clarkkitchen/biohub-offline-dependencies",
+  "title": "Biohub Offline Dependencies",
+  "code_file": "dependencies.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_internet": true,
+  "dataset_sources": [],
+  "competition_sources": [],
+  "kernel_sources": [],
+  "model_sources": []
+}

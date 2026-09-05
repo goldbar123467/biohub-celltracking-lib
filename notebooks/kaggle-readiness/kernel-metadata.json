@@ -1,0 +1,15 @@
+{
+  "id": "clarkkitchen/biohub-gpu-readiness",
+  "title": "Biohub GPU Readiness",
+  "code_file": "biohub-readiness.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_internet": false,
+  "machine_shape": "NvidiaTeslaT4",
+  "dataset_sources": [],
+  "competition_sources": ["biohub-cell-tracking-during-development"],
+  "kernel_sources": ["clarkkitchen/biohub-offline-dependencies"],
+  "model_sources": []
+}

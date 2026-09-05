@@ -2,6 +2,8 @@
 
 Competition library for Kaggle's Biohub - Cell Tracking During Development.
 
+Canonical repository: [goldbar123467/biohub-celltracking-lib](https://github.com/goldbar123467/biohub-celltracking-lib).
+
 This repo is built around four priorities:
 
 - keep the Kaggle inference path offline and reproducible;
@@ -42,3 +44,20 @@ unlock richer local data access and official-metric integration.
 
 Start with `docs/competition/metric_deep_dive.md`, then run the smoke tests before
 touching the Kaggle path.
+
+## Compute and project operations
+
+Two platforms are configured: **Vast.ai** for interactive debugging, data audits
+and small GPU experiments, and **Kaggle cloud** for bounded training, validation
+and offline inference. Read [AGENTS.md](AGENTS.md) and the
+[compute and recovery plan](docs/compute-and-recovery-plan.md) before launching work.
+
+The 2026-09-05 setup verified an RTX 4070 SUPER on Vast and an offline private
+Kaggle readiness run on two Tesla T4 GPUs. These are infrastructure checks, not
+real-data model scores. Refresh current quota, data status and environment versions
+before experiments; older experiment documents describe synthetic/mock runs.
+
+See [infrastructure setup](docs/infrastructure-setup.md) for environment pins,
+tmux operation and connection configuration. Actual SSH settings, credentials,
+datasets, checkpoints and generated reports remain outside Git. Retrieve durable
+experiment artifacts separately; a source checkout does not back up training state.

@@ -1,0 +1,9 @@
+kaggle==2.2.4
+kagglehub==1.0.2
+stream-unzip==0.0.101
+zarr>=3.0.10,<4
+numpy
+scipy
+polars
+psutil
+pytest

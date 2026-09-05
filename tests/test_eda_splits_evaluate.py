@@ -11,12 +11,12 @@ def make_fake_zarr(path, shape=(2, 3, 4, 5)):
     meta = path / "0"
     meta.mkdir(parents=True)
     (meta / "zarr.json").write_text(
-        "{"
-        '"shape":[%s],'
+        "{{"
+        '"shape":[{}],'
         '"data_type":"uint16",'
-        '"chunk_grid":{"configuration":{"chunk_shape":[1,3,4,5]}},'
+        '"chunk_grid":{{"configuration":{{"chunk_shape":[1,3,4,5]}}}},'
         '"codecs":[]'
-        "}" % ",".join(str(x) for x in shape),
+        "}}".format(",".join(str(x) for x in shape)),
         encoding="utf-8",
     )
 
@@ -51,7 +51,7 @@ def test_eda_report_contains_graph_and_displacement_stats(tmp_path):
     train = make_train_dir(tmp_path)
     out = tmp_path / "eda.md"
 
-    write_eda_report(train, out)
+    write_eda_report(train, out, allow_metadata_only=True)
 
     text = out.read_text(encoding="utf-8")
     assert "embA_0001" in text
@@ -85,10 +85,11 @@ def test_evaluate_fold_writes_baseline_report(tmp_path):
         fold="fold0",
         output_path=out,
         pipeline="classical",
+        metric_backend="local-probe",
+        metadata_smoke_only=True,
     )
 
     text = out.read_text(encoding="utf-8")
     assert summary.dataset_count >= 1
     assert "edge_tp" in text
     assert "node_count_ratio" in text
-

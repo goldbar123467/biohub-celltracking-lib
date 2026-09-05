@@ -1,0 +1,6 @@
+{
+  "threshold_abs": 0.5,
+  "nms_radius_um": 3.0,
+  "link_distance_um": 8.0,
+  "debug_max_frames": 3
+}

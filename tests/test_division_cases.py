@@ -24,6 +24,9 @@ def gt_division_graph() -> Graph:
 
 
 def assert_division_parity(pred: Graph, gt: Graph) -> None:
+    pytest.importorskip(
+        "tracking_cellmot.metrics", reason="Official parity requires official-metric extras"
+    )
     local = evaluate_divisions(pred, gt)
     official = evaluate_official(pred, gt, total_true_nodes=pred.num_nodes)
     assert local.tp == official.division_tp

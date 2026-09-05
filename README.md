@@ -1,63 +1,48 @@
-# Biohub Celltracking Lib
+# Biohub Cell Tracking Library
 
-Competition library for Kaggle's Biohub - Cell Tracking During Development.
+Competition source for [goldbar123467/biohub-celltracking-lib](https://github.com/goldbar123467/biohub-celltracking-lib).
 
-Canonical repository: [goldbar123467/biohub-celltracking-lib](https://github.com/goldbar123467/biohub-celltracking-lib).
+The implemented path streams real Zarr frames through a classical point detector
+and constrained adjacent-frame linker, checkpoints each completed dataset, and
+atomically writes a validated submission CSV. Validation reloads that CSV and
+calls a pinned organizer metric. A deterministic builder packages the same source
+for offline Kaggle execution.
 
-This repo is built around four priorities:
-
-- keep the Kaggle inference path offline and reproducible;
-- match the organizer metric semantics before optimizing models;
-- iterate with a dependency-light classical baseline first;
-- document source facts and experiment decisions for future agents.
-
-## Quickstart
+## Run
 
 ```bash
-python -m pip install -e .
+python -m pip install -e '.[dev,kaggle,official-metric]'
 python -m pytest -q
-python scripts/smoke_test_kaggle_path.py
-python scripts/make_submission.py --data-dir /path/to/test --output submission.csv --debug
-python -m biohub_ct.submission.validator submission.csv
+python scripts/make_submission.py --data-dir /path/to/test \
+  --config configs/classical.json --output reports/rehearsal/submission.csv
 ```
 
-The default verified path uses Python 3.11+ plus NumPy. Optional packages such as
-`zarr`, `scipy`, `scikit-image`, `pandas`, `geff`, `polars`, and `tracksdata`
-unlock richer local data access and official-metric integration.
+Read [testing, evaluation and submission commands](docs/testing-and-submission.md)
+for whole-embryo folds, resume behavior, source/input identity, optional test
+requirements and Kaggle packaging. `--debug` is a metadata-only fixture smoke
+mode. Use the normal path for real image inference.
 
-## What Works Now
+## Current scope
 
-- Discovers `.zarr` datasets and paired `.geff` folders.
-- Opens Zarr metadata lazily without loading whole videos.
-- Reads synthetic `.geff/graph.json` fallback graphs.
-- Represents tracking graphs as nodes and directed temporal edges.
-- Runs synthetic edge/division metric probes matching the organizer semantics covered by tests.
-- Runs a conservative no-training baseline with safe fallback output.
-- Writes and validates exact `submission.csv` schema.
-- Provides Kaggle-offline scripts and a notebook scaffold.
+- Real uint16 TZYX Zarr loading with strict competition chunk checks.
+- GEFF graph reading that preserves the estimated total cell count.
+- Frozen 71/128-clip embryo splits, with overlap and missing-ID checks.
+- Exact spatial-bin NMS and greedy association; detection uses original intensity
+  maxima to avoid clipped plateaus.
+- Graph/schema/bounds validation, atomic output and per-dataset recovery.
+- CSV-round-tripped official evaluation with component metrics and provenance.
+- Generated self-contained, internet-off Kaggle notebook with verified wheels.
 
-## What Is Scaffolded
+Learned 3D detectors, temporal linkers, division models and ensembles remain
+scaffolded. The classical baseline has measured engineering results, not a claim
+of competitive model quality. See [executed evidence](docs/experiments/2026-09-05-architecture.md)
+and [current research](docs/research/alpha-2026-09-05.md).
 
-- Real GEFF reading through the optional `geff` package.
-- Official organizer metric calls through `tracking_cellmot` objects.
-- Learned 3D U-Net detector, transformer/GNN linker, ILP solver, and ensembles.
+## Compute and operations
 
-Start with `docs/competition/metric_deep_dive.md`, then run the smoke tests before
-touching the Kaggle path.
-
-## Compute and project operations
-
-Two platforms are configured: **Vast.ai** for interactive debugging, data audits
-and small GPU experiments, and **Kaggle cloud** for bounded training, validation
-and offline inference. Read [AGENTS.md](AGENTS.md) and the
-[compute and recovery plan](docs/compute-and-recovery-plan.md) before launching work.
-
-The 2026-09-05 setup verified an RTX 4070 SUPER on Vast and an offline private
-Kaggle readiness run on two Tesla T4 GPUs. These are infrastructure checks, not
-real-data model scores. Refresh current quota, data status and environment versions
-before experiments; older experiment documents describe synthetic/mock runs.
-
-See [infrastructure setup](docs/infrastructure-setup.md) for environment pins,
-tmux operation and connection configuration. Actual SSH settings, credentials,
-datasets, checkpoints and generated reports remain outside Git. Retrieve durable
-experiment artifacts separately; a source checkout does not back up training state.
+Vast.ai provides debugging and real-data evaluation; Kaggle provides final offline
+execution. Read [AGENTS.md](AGENTS.md), [infrastructure setup](docs/infrastructure-setup.md)
+and the [compute and recovery plan](docs/compute-and-recovery-plan.md) before runs.
+The full dataset remains unavailable until the downloader and SHA256 verification
+both complete. Source Git does not back up model checkpoints or local datasets.
+Credentials, local connection settings and generated artifacts remain outside Git.

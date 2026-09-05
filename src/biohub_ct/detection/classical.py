@@ -21,22 +21,29 @@ def detect_local_maxima_3d(
     norm = robust_normalize(frame)
     if norm.ndim != 3:
         raise ValueError(f"Expected 3D frame (Z,Y,X), got shape {norm.shape}")
-    padded = np.pad(norm, 1, mode="edge")
+    # Clipping normalization creates large artificial plateaus. Find and rank
+    # maxima in the original intensity array; normalize only the threshold.
+    padded = np.pad(frame, 1, mode="edge")
     center = padded[1:-1, 1:-1, 1:-1]
-    is_peak = center >= threshold_abs
+    is_peak = norm >= threshold_abs
     for dz in (-1, 0, 1):
         for dy in (-1, 0, 1):
             for dx in (-1, 0, 1):
                 if dz == dy == dx == 0:
                     continue
-                is_peak &= center >= padded[1 + dz : 1 + dz + norm.shape[0], 1 + dy : 1 + dy + norm.shape[1], 1 + dx : 1 + dx + norm.shape[2]]
+                is_peak &= (
+                    center
+                    >= padded[
+                        1 + dz : 1 + dz + norm.shape[0],
+                        1 + dy : 1 + dy + norm.shape[1],
+                        1 + dx : 1 + dx + norm.shape[2],
+                    ]
+                )
     coords = np.argwhere(is_peak)
     if coords.size == 0:
         return []
-    scores = norm[tuple(coords.T)]
-    order = np.argsort(scores)[::-1][:max_peaks]
+    scores = np.asarray(frame[tuple(coords.T)], dtype=np.float64)
+    order = np.argsort(-scores, kind="stable")[:max_peaks]
     return [
-        (int(coords[i, 0]), int(coords[i, 1]), int(coords[i, 2]), float(scores[i]))
-        for i in order
+        (int(coords[i, 0]), int(coords[i, 1]), int(coords[i, 2]), float(scores[i])) for i in order
     ]
-

@@ -1,0 +1,11 @@
+{
+  "competition": "biohub-cell-tracking-during-development",
+  "created": "2026-09-05",
+  "source": "authenticated competition file inventory",
+  "datasets": 199,
+  "groups": {
+    "44b6": 71,
+    "6bba": 128
+  },
+  "split_sha256": "a24789795d9d21e313074e4918f461388543f2ee42de041035e21f7b331362bd"
+}

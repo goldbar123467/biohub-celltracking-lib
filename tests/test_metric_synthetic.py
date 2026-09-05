@@ -8,7 +8,6 @@ from biohub_ct.data.schema import Edge, Graph, Node
 from biohub_ct.metrics.edge import evaluate_edges, match_nodes
 from biohub_ct.metrics.official_adapter import evaluate_official
 
-
 SCALE = (1.625, 0.40625, 0.40625)
 
 
@@ -22,7 +21,10 @@ def line_graph(offset_x: int = 0) -> Graph:
     )
 
 
-def assert_edge_parity(pred: Graph, gt: Graph, total_true_nodes: int | float) -> None:
+def assert_edge_parity(pred: Graph, gt: Graph, total_true_nodes: float) -> None:
+    pytest.importorskip(
+        "tracking_cellmot.metrics", reason="Official parity requires official-metric extras"
+    )
     local = evaluate_edges(pred, gt, scale=SCALE, total_true_nodes=total_true_nodes)
     official = evaluate_official(pred, gt, scale=SCALE, total_true_nodes=total_true_nodes)
     assert local.edge_tp == official.edge_tp

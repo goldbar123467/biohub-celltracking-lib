@@ -7,7 +7,7 @@ import numpy as np
 
 from biohub_ct.data.geff_io import GeffMetadata, read_geff_graph
 from biohub_ct.data.paths import DatasetRecord, discover_datasets
-from biohub_ct.data.schema import Graph, Node
+from biohub_ct.data.schema import Graph
 from biohub_ct.data.zarr_io import LazyZarrVolume, open_zarr_volume
 from biohub_ct.metrics.edge import scaled_distance
 
@@ -36,8 +36,11 @@ def write_eda_report(
     output_path: Path | str,
     *,
     max_intensity_frames: int = 3,
+    allow_metadata_only: bool = False,
 ) -> list[DatasetEdaRow]:
-    rows = collect_eda_rows(data_dir, max_intensity_frames=max_intensity_frames)
+    rows = collect_eda_rows(
+        data_dir, max_intensity_frames=max_intensity_frames, allow_metadata_only=allow_metadata_only
+    )
     out = Path(output_path)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(_format_markdown(rows, data_dir), encoding="utf-8")
@@ -48,11 +51,12 @@ def collect_eda_rows(
     data_dir: Path | str,
     *,
     max_intensity_frames: int = 3,
+    allow_metadata_only: bool = False,
 ) -> list[DatasetEdaRow]:
     records = discover_datasets(data_dir, require_geff=True)
     rows: list[DatasetEdaRow] = []
     for record in records:
-        volume = open_zarr_volume(record.zarr_path)
+        volume = open_zarr_volume(record.zarr_path, allow_metadata_only=allow_metadata_only)
         graph, meta = _read_graph(record)
         rows.append(_row(record, volume, graph, meta, max_intensity_frames=max_intensity_frames))
     return rows
@@ -112,7 +116,9 @@ def _edge_displacements(graph: Graph, scale: tuple[float, float, float]) -> list
     out = []
     for edge in graph.edges_list:
         if edge.source_id in graph.nodes and edge.target_id in graph.nodes:
-            out.append(scaled_distance(graph.node(edge.source_id), graph.node(edge.target_id), scale))
+            out.append(
+                scaled_distance(graph.node(edge.source_id), graph.node(edge.target_id), scale)
+            )
     return out
 
 
@@ -133,9 +139,7 @@ def _nearest_neighbor_spacings(graph: Graph, scale: tuple[float, float, float]) 
             continue
         for i, node in enumerate(nodes):
             distances = [
-                scaled_distance(node, other, scale)
-                for j, other in enumerate(nodes)
-                if i != j
+                scaled_distance(node, other, scale) for j, other in enumerate(nodes) if i != j
             ]
             if distances:
                 out.append(min(distances))
@@ -184,6 +188,7 @@ def _format_markdown(rows: list[DatasetEdaRow], data_dir: Path | str) -> str:
             )
         )
     if not body:
-        body.append("| no_datasets_found | - | - | - | - | 0 | 0 | 0 |  | - | nan | nan | nan | nan | - |")
+        body.append(
+            "| no_datasets_found | - | - | - | - | 0 | 0 | 0 |  | - | nan | nan | nan | nan | - |"
+        )
     return header + "\n".join(body) + "\n"
-

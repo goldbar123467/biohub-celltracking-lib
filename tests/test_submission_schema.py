@@ -54,15 +54,10 @@ def test_validator_rejects_non_consecutive_ids(tmp_path):
         validate_submission(bad)
 
 
-def test_empty_graph_gets_safe_fallback_node(tmp_path):
+def test_empty_graph_is_rejected_without_replacing_output(tmp_path):
     out = tmp_path / "submission.csv"
 
-    write_submission({"empty_ds": Graph()}, out)
-
-    result = validate_submission(out, expected_datasets=["empty_ds"])
-    assert result.row_count == 1
-    with out.open(newline="") as f:
-        row = next(csv.DictReader(f))
-    assert row["row_type"] == "node"
-    assert row["node_id"] == "0"
-
+    out.write_text("previous output")
+    with pytest.raises(SubmissionError, match="no nodes"):
+        write_submission({"empty_ds": Graph()}, out)
+    assert out.read_text() == "previous output"

@@ -18,13 +18,24 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--fold", required=True)
     parser.add_argument("--pipeline", default="classical", choices=["classical"])
     parser.add_argument("--output", required=True)
+    parser.add_argument("--config")
+    parser.add_argument("--metric-backend", choices=["official", "local-probe"], default="official")
+    parser.add_argument("--metadata-smoke-only", action="store_true")
     args = parser.parse_args(argv)
+    import json
+
+    from biohub_ct.pipelines.baseline_classical import ClassicalConfig
+
+    config = ClassicalConfig(**json.loads(Path(args.config).read_text())) if args.config else None
     summary = evaluate_fold(
         data_dir=args.data_dir,
         splits_path=args.split,
         fold=args.fold,
         pipeline=args.pipeline,
         output_path=args.output,
+        metric_backend=args.metric_backend,
+        config=config,
+        metadata_smoke_only=args.metadata_smoke_only,
     )
     print(
         f"wrote {args.output} "

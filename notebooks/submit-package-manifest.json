@@ -1,0 +1,12 @@
+{
+  "dependency_manifest_sha256": "2c951e4c2afbb76b11b8d9f8007d26f8e5ddaf5086eadefb55256c79a067a84c",
+  "source_archive_sha256": "09760a0c59ef2bbc87a3bb6f28594090527dab6acfb5d2ffdc38b1b7af198f94",
+  "source_bytes": 35123,
+  "config": {
+    "threshold_abs": 0.5,
+    "nms_radius_um": 3.0,
+    "link_distance_um": 8.0,
+    "debug_max_frames": 3
+  },
+  "notebook_sha256": "856d3a7cf44a36a2ad5067a7d3cf79d646bac9168f9a1fcea22daa2a8be0fb29"
+}

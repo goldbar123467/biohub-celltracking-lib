@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import time
+
 from biohub_ct.config import DEFAULT_SCALE
 from biohub_ct.data.schema import Node
 from biohub_ct.data.zarr_io import LazyZarrVolume
@@ -15,6 +17,7 @@ def detect_nodes_in_volume(
     threshold_abs: float = 0.5,
     nms_radius_um: float = 3.0,
     max_frames: int | None = None,
+    deadline_at: float | None = None,
 ) -> list[Node]:
     if not volume.can_read_chunks:
         return []
@@ -24,6 +27,8 @@ def detect_nodes_in_volume(
         total_frames = min(total_frames, max_frames)
     next_id = 0
     for t in range(total_frames):
+        if deadline_at is not None and time.monotonic() >= deadline_at:
+            raise TimeoutError("Inference budget exhausted during frame detection")
         frame = volume.read_frame(t)
         peaks = detect_local_maxima_3d(frame, threshold_abs=threshold_abs)
         coords = [(z, y, x) for z, y, x, _ in peaks]
@@ -33,4 +38,3 @@ def detect_nodes_in_volume(
             nodes.append(Node(next_id, t=t, z=coord[0], y=coord[1], x=coord[2]))
             next_id += 1
     return nodes
-

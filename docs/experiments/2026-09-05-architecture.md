@@ -52,3 +52,36 @@ Raw JSON/CSV/log artifacts remain under `reports/architecture-benchmark-v1`,
 configured machines. The v2 benchmark scored the detector fix before later
 formatting, metadata validation and reporting-only changes. Runtime is platform
 and clip dependent; hidden-test timing remains an estimate, not a guarantee.
+
+## Final offline release rehearsal
+
+[Kaggle notebook version 3](https://www.kaggle.com/code/clarkkitchen/biohub-submission-rehearsal)
+completed on CPU with internet disabled. Use the notebook's version selector for
+version 3; no scored competition submission was made.
+
+- Four complete 100-frame example clips; 337,810 validated CSV rows.
+- Runtime for inference, per-clip checkpoints, CSV writing and validation:
+  169.17 seconds. This excludes notebook startup and wheel installation.
+- Peak inference-worker RSS: 381,882,368 bytes, approximately 364 MiB.
+- Per-clip times: 32.94, 46.20, 27.56 and 51.45 seconds. No fallback nodes and no
+  resumed caches were used.
+- CSV SHA256: `802d9e0b3dc8d38f8d79106c6ae9d2e61e009140e96b87d005b0bb3b5a8624cc`.
+- Runtime source digest: `b8021347824a87fa2f80ee0da35b53f43c6a9a09a48a6e066fec536bfa1358d4`,
+  independently matched to the published library source on Windows.
+- The downloaded CSV was independently checked for hash, exact dataset coverage,
+  graph constraints and coordinate bounds. Outputs are retained in
+  `reports/kaggle-submission-v3`.
+- Version 2 failed before inference because a new validator incorrectly required
+  lowercase axis names. The competition's uppercase T/Z/Y/X metadata is now
+  supported and covered by the real-IO test. Version 3 used the corrected code.
+
+For a **199-clip planning scenario** with similarly sized images, the slowest
+observed clip plus average CSV overhead, divided by 0.75 for a 25% reserve, projects
+approximately four hours. Four example clips are not enough to establish a hidden
+runtime tail. Actual hidden IDs and counts are discovered at execution time.
+
+[GitHub CI](https://github.com/goldbar123467/biohub-celltracking-lib/actions/runs/33994718856)
+passed on both Ubuntu and Windows for source commit
+`663540b896cfadbafd7c6ad329710cb2d41575c0`. The synchronized Vast checkout passed
+all 50 tests again after installation. CI does not include the optional official
+scorer; the complete Vast test run does.

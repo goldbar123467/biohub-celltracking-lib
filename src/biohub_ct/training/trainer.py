@@ -23,6 +23,55 @@ from biohub_ct.training.checkpoint import (
 from biohub_ct.training.model import ModelConfig, PointDetector3D, masked_heatmap_loss
 
 
+def scaled_optimizer_update(
+    model, optimizer, scaler, forward_loss, gradient_clip, *, max_retries=8, on_overflow=None
+):
+    """Retry overflowed AMP backward passes without consuming an optimizer step.
+
+    This detector has no mutable running-statistic buffers. Restore RNG so a retry
+    uses the same stochastic forward pass. Non-AMP or persistent failures still stop.
+    """
+    rng = capture_rng_state()
+    for retry in range(max_retries + 1):
+        if retry:
+            restore_rng_state(rng)
+        optimizer.zero_grad(set_to_none=True)
+        loss = forward_loss()
+        if not bool(torch.isfinite(loss)):
+            raise FloatingPointError("Nonfinite training loss")
+        scaler.scale(loss).backward()
+        scaler.unscale_(optimizer)
+        gradients = [p.grad for p in model.parameters() if p.grad is not None]
+        finite = bool(torch.stack([torch.isfinite(g).all() for g in gradients]).all())
+        if finite:
+            norm = torch.nn.utils.clip_grad_norm_(
+                model.parameters(), gradient_clip, error_if_nonfinite=True
+            )
+            scaler.step(optimizer)
+            scaler.update()
+            return loss, norm, retry
+        if not scaler.is_enabled() or retry == max_retries:
+            raise FloatingPointError(f"Nonfinite gradients after {retry} AMP retries")
+        old_scale = scaler.get_scale()
+        # unscale_ recorded nonfinite gradients, so GradScaler skips optimizer.step.
+        scaler.step(optimizer)
+        scaler.update()
+        new_scale = scaler.get_scale()
+        if not 0 < new_scale < old_scale:
+            raise FloatingPointError("AMP overflow did not reduce the loss scale")
+        if on_overflow is not None:
+            on_overflow(
+                {
+                    "event": "amp_overflow_retry",
+                    "retry": retry + 1,
+                    "old_scale": old_scale,
+                    "new_scale": new_scale,
+                    "finite_loss": float(loss.detach()),
+                }
+            )
+    raise AssertionError("Unreachable AMP retry state")
+
+
 @dataclass(frozen=True)
 class TrainConfig:
     max_steps: int = 100000
@@ -78,6 +127,7 @@ def train_detector(
     identity: dict | None = None,
     validation_callback: Callable[[PointDetector3D, int], dict] | None = None,
     resume: Path | str | None = None,
+    resume_expected_identity: dict | None = None,
 ) -> dict:
     """One fold/refit run. Callback returns a finite `score` (higher is better).
 
@@ -113,8 +163,17 @@ def train_detector(
     split = {name: list(getattr(sampler, name, [])) for name in ("train_ids", "val_ids", "dev_ids")}
     run_identity["split"] = split
     step, elapsed_prior, best_score = 0, 0.0, None
+    overflow_retries = 0
+    resume_parent = None
     if resume is not None:
-        state = load_checkpoint(resume, expected_identity=run_identity)
+        expected = resume_expected_identity or run_identity
+        # Explicit repair migration permits only source identity changes.
+        source_keys = {"source_digest", "campaign_script_sha256", "git_commit"}
+        if {k: v for k, v in expected.items() if k not in source_keys} != {
+            k: v for k, v in run_identity.items() if k not in source_keys
+        }:
+            raise ValueError("Repair resume changed data or split identity")
+        state = load_checkpoint(resume, expected_identity=expected)
         # Only budget extensions may differ. Numerical/runtime/sampling settings remain fixed.
         old_config, current_config = dict(state["config"]), asdict(config)
         for key in ("max_steps", "max_seconds"):
@@ -135,6 +194,8 @@ def train_detector(
         restore_rng_state(state["rng"])
         step, elapsed_prior = int(state["step"]), float(state["elapsed_seconds"])
         best_score = state.get("best_score")
+        overflow_retries = int(state.get("amp_overflow_retries", 0))
+        resume_parent = {"checkpoint": str(resume), "identity": state["identity"]}
     start = time.monotonic()
     last_save = start
     stopped = {"signal": None}
@@ -166,6 +227,8 @@ def train_detector(
                 "data_config": data_config,
                 "identity": run_identity,
                 "versions": versions(),
+                "amp_overflow_retries": overflow_retries,
+                "resume_parent": resume_parent,
             },
             is_best=is_best,
         )
@@ -196,25 +259,32 @@ def train_detector(
                 if any(t.dtype != torch.float32 for t in tensors):
                     raise ValueError("Sampler tensors must be float32")
                 model.train()
-                optimizer.zero_grad(set_to_none=True)
-                with torch.autocast(
-                    device_type=device.type,
-                    dtype=torch.float16,
-                    enabled=config.amp and device.type == "cuda",
-                ):
-                    logits = model(tensors[0])
-                    loss = masked_heatmap_loss(
-                        logits, tensors[1], tensors[2], normalizer=batch.get("loss_normalizer")
-                    )
-                if not bool(torch.isfinite(loss)):
-                    raise FloatingPointError("Nonfinite training loss")
-                scaler.scale(loss).backward()
-                scaler.unscale_(optimizer)
-                grad_norm = torch.nn.utils.clip_grad_norm_(
-                    model.parameters(), config.gradient_clip, error_if_nonfinite=True
+
+                def forward_loss(tensors=tensors, batch=batch):
+                    with torch.autocast(
+                        device_type=device.type,
+                        dtype=torch.float16,
+                        enabled=config.amp and device.type == "cuda",
+                    ):
+                        return masked_heatmap_loss(
+                            model(tensors[0]),
+                            tensors[1],
+                            tensors[2],
+                            normalizer=batch.get("loss_normalizer"),
+                        )
+
+                def log_overflow(event, step=step):
+                    metrics.write(json.dumps({"step": step, **event}, allow_nan=False) + "\n")
+
+                loss, grad_norm, retries = scaled_optimizer_update(
+                    model,
+                    optimizer,
+                    scaler,
+                    forward_loss,
+                    config.gradient_clip,
+                    on_overflow=log_overflow,
                 )
-                scaler.step(optimizer)
-                scaler.update()
+                overflow_retries += retries
                 scheduler.step()
                 step += 1
                 last_loss = float(loss.detach())
@@ -225,6 +295,8 @@ def train_detector(
                     event = {
                         "step": step,
                         "loss": last_loss,
+                        "amp_overflow_retries": overflow_retries,
+                        "amp_scale": scaler.get_scale(),
                         "gradient_norm": float(grad_norm),
                         "elapsed_seconds": elapsed_prior + elapsed,
                         "step_seconds": time.monotonic() - iteration_start,
@@ -271,6 +343,7 @@ def train_detector(
             "reason": reason,
             "signal": stopped["signal"],
             "step": step,
+            "amp_overflow_retries": overflow_retries,
             "last_loss": last_loss,
             "best_score": best_score,
             "checkpoint": str(last_checkpoint),
@@ -285,6 +358,7 @@ def train_detector(
             {
                 "status": "failed",
                 "step": step,
+                "elapsed_seconds": elapsed_prior + time.monotonic() - start,
                 "error_type": type(exc).__name__,
                 "error": str(exc),
                 "last_valid_checkpoint": str(last_checkpoint) if last_checkpoint else None,

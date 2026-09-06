@@ -34,6 +34,7 @@ from biohub_ct.submission.writer import write_submission
 from biohub_ct.training.checkpoint import atomic_json, load_checkpoint
 from biohub_ct.training.data import DataConfig, SparsePatchSampler
 from biohub_ct.training.model import ModelConfig, PointDetector3D, masked_heatmap_loss
+from biohub_ct.training.recovery import copy_verified_checkpoints, recovery_plan
 from biohub_ct.training.trainer import TrainConfig, train_detector
 
 
@@ -119,9 +120,20 @@ def main():
     parser.add_argument("--fold-seconds", type=float, default=9000)
     parser.add_argument("--refit-seconds", type=float, default=3600)
     parser.add_argument("--smoke", action="store_true")
+    parser.add_argument("--resume-campaign")
+    parser.add_argument("--repair-seconds", type=float, default=600)
     args = parser.parse_args()
     if args.total_seconds <= 0 or args.total_seconds > 27000 or args.fold_seconds <= 0:
         raise ValueError("Positive budget required; campaign maximum is 7.5 hours")
+    recovery = (
+        recovery_plan(args.resume_campaign, repair_seconds=args.repair_seconds)
+        if args.resume_campaign
+        else None
+    )
+    if args.smoke and recovery:
+        raise ValueError("Campaign smoke cannot import an already trained checkpoint")
+    if recovery:
+        args.total_seconds = min(args.total_seconds, recovery["remaining_seconds"])
     output = Path("reports/campaigns") / args.run_id
     output.mkdir(parents=True, exist_ok=False)
     start = time.monotonic()
@@ -154,6 +166,8 @@ def main():
     }
     manifest = {
         "run_id": args.run_id,
+        "recovery": recovery,
+        "budget_spent_before_seconds": recovery["budget_spent_before_seconds"] if recovery else 0,
         "started_unix": time.time(),
         "args": vars(args),
         "identity": identity,
@@ -206,6 +220,28 @@ def main():
             config = replace(
                 train_config, max_seconds=min(args.fold_seconds, deadline - time.monotonic() - 60)
             )
+            resume_path, expected_identity = None, None
+            if recovery:
+                parent_fold = Path("reports/campaigns") / args.resume_campaign / key
+                if (parent_fold / "checkpoints/manifest.json").exists():
+                    resume_path = output / key / "checkpoints"
+                    state = copy_verified_checkpoints(parent_fold / "checkpoints", resume_path)
+                    expected_identity = state["identity"]
+                    prior_status = json.loads((parent_fold / "status.json").read_text())
+                    if prior_status["status"] == "completed":
+                        atomic_json(output / key / "status.json", prior_status)
+                        outcomes[key] = {"training": prior_status, "reused_completed_fit": True}
+                        continue
+                    spent = max(
+                        float(state["elapsed_seconds"]),
+                        float(
+                            prior_status.get("elapsed_seconds", recovery["parent_elapsed_seconds"])
+                        ),
+                    )
+                    config = replace(
+                        config,
+                        max_seconds=max(1, min(config.max_seconds, args.fold_seconds - spent)),
+                    )
             if args.smoke:
                 config = replace(
                     config,
@@ -215,7 +251,14 @@ def main():
                     log_every_steps=5,
                 )
             result = train_detector(
-                config, sampler, output / key, model_config, {**identity, "fold": key}, callback
+                config,
+                sampler,
+                output / key,
+                model_config,
+                {**identity, "fold": key},
+                callback,
+                resume=resume_path,
+                resume_expected_identity=expected_identity,
             )
             if result["status"] != "completed":
                 raise RuntimeError(f"Training stopped: {result}")

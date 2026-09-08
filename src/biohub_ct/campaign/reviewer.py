@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import subprocess
 import time
 from collections.abc import Callable
@@ -108,6 +109,250 @@ def _daily_submission_usage(snapshot, history, today) -> dict:
             "unclassified_counted_as_exploratory": unclassified}
 
 
+def _handoff_destination(store: CampaignStore) -> Path:
+    """Return the fixed controller-root handoff path without risking store files."""
+    destination = store.path.parent / "handoff.md"
+    temporary = destination.with_name(destination.name + ".partial")
+    protected = {
+        store.path,
+        Path(str(store.path) + "-wal"),
+        Path(str(store.path) + "-shm"),
+        Path(str(store.path) + "-journal"),
+        store.path.with_suffix(".review.lock"),
+    }
+    if destination in protected or temporary in protected:
+        raise RuntimeError("Fixed handoff path conflicts with the campaign store or lock")
+    return destination
+
+
+def _atomic_text(path: Path, text: str) -> None:
+    """Durably replace one UTF-8 text file and surface every write failure."""
+    temporary = path.with_name(path.name + ".partial")
+    try:
+        with temporary.open("w", encoding="utf-8", newline="\n") as handle:
+            handle.write(text)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+        if os.name == "posix":
+            descriptor = os.open(path.parent, os.O_RDONLY)
+            try:
+                os.fsync(descriptor)
+            finally:
+                os.close(descriptor)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
+
+
+def _file_sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _code(value: object) -> str:
+    text = str(value).replace("`", "\\u0060").replace("\r", " ").replace("\n", " ")
+    return f"`{text}`"
+
+
+def _handoff_markdown(
+    store: CampaignStore,
+    snapshot: dict,
+    result: dict,
+    *,
+    state_path: Path,
+    observation_path: Path,
+    decision_path: Path,
+) -> str:
+    """Render the evidence-derived durable handoff required by STATE_TEMPLATES."""
+    campaign = snapshot["campaign"]
+    incumbents = campaign.get("incumbents") or {}
+    active_jobs = [
+        job for job in snapshot["jobs"]
+        if job["state"] in {"APPROVED", "LAUNCH_INTENT", "LAUNCH_UNKNOWN", "RUNNING"}
+    ]
+    unresolved_intents = [
+        intent for intent in snapshot["intents"]
+        if intent["state"] in {"PENDING", "DISPATCHED", "UNKNOWN"}
+    ]
+    reviewed_at = datetime.fromisoformat(result["finished_at"])
+    active_approvals = []
+    for approval in snapshot["approvals"]:
+        if (
+            approval.get("operational_approval") is True
+            and approval.get("consumed_at") is None
+            and approval.get("superseded_by") is None
+            and datetime.fromisoformat(approval["valid_until"]) > reviewed_at
+        ):
+            active_approvals.append(approval)
+
+    lines = [
+        "# Campaign handoff",
+        "",
+        f"- Campaign: {_code(campaign['campaign_id'])}",
+        f"- Authoritative store: {_code(store.path)}",
+        "- Authority: derived summary only; this file grants no approval or external-action authority.",
+        f"- State version: {_code(snapshot['state_version'])}",
+        f"- Review: {_code(result['review_id'])} finished at {_code(result['finished_at'])}",
+        (
+            f"- Decision receipt: {_code(decision_path)} "
+            f"(SHA-256 {_code(_file_sha256(decision_path))})"
+        ),
+        (
+            f"- State snapshot: {_code(state_path)} "
+            f"(SHA-256 {_code(_file_sha256(state_path))})"
+        ),
+        "",
+        "## Incumbents",
+        "",
+    ]
+    for label, key in (
+        ("Public score", "public_score"),
+        ("Validation", "validation"),
+        ("Final selection", "final_selection"),
+    ):
+        value = incumbents.get(key)
+        lines.append(f"- {label}: {_code(canonical_json(value)) if value is not None else 'none'}")
+
+    lines.extend(["", "## Active jobs and deadlines", ""])
+    if not active_jobs:
+        lines.append("- None.")
+    for job in active_jobs:
+        execution = job["spec"].get("execution", {})
+        lines.append(
+            f"- {_code(job['run_id'])}: state {_code(job['state'])}; "
+            f"deadline {_code(execution.get('deadline_utc'))}; "
+            f"run spec SHA-256 {_code(job['run_spec_sha256'])}."
+        )
+
+    lines.extend(["", "## Resources", ""])
+    lines.append(
+        "- Ledgers are separate recorded snapshots, not additive account balances; "
+        "admission requires fresh provider reconciliation."
+    )
+    if not snapshot["ledgers"]:
+        lines.append("- No resource ledger is recorded.")
+    active_reservations = [row for row in snapshot["reservations"] if row["status"] == "ACTIVE"]
+    for ledger in snapshot["ledgers"]:
+        reservations = [
+            f"{row['reservation_id']}={row['amount']}"
+            for row in active_reservations
+            if row["ledger_id"] == ledger["ledger_id"]
+        ]
+        lines.append(
+            f"- {_code(ledger['ledger_id'])}: confirmed/settled spend "
+            f"{_code(ledger['confirmed_spend'])} {_code(ledger['unit'])}; active reserved "
+            f"{_code(ledger['outstanding_reservations'])}; unreconciled "
+            f"{_code(ledger['unreconciled_spend'])}; protected {_code(ledger['protected_reserve'])}; "
+            f"available {_code(ledger['available'])}; active reservation IDs "
+            f"{_code(', '.join(reservations)) if reservations else 'none'}; "
+            f"observation time {_code(ledger.get('observation_time'))}."
+        )
+
+    lines.extend(["", "## Unresolved intents", ""])
+    if not unresolved_intents:
+        lines.append("- None.")
+    for intent in unresolved_intents:
+        lines.append(
+            f"- {_code(intent['intent_id'])}: {_code(intent['intent_kind'])} for "
+            f"{_code(intent['subject_id'])}, state {_code(intent['state'])}, external ID "
+            f"{_code(intent.get('external_id'))}."
+        )
+
+    lines.extend(["", "## New evidence", ""])
+    lines.append(f"- Observation digest: {_code(result['observation_sha256'])}.")
+    for decision in result["decisions"]:
+        summary = {
+            key: decision[key]
+            for key in (
+                "decision", "run_id", "candidate_id", "intent_id", "submission_id",
+                "status", "worker_status", "public_score", "reason",
+            )
+            if key in decision
+        }
+        lines.append(f"- {_code(canonical_json(summary))}")
+
+    lines.extend(["", "## Approved action", ""])
+    if not active_approvals:
+        lines.append("- None.")
+    for approval in active_approvals:
+        lines.append(
+            f"- {_code(approval['action'])} {_code(approval['subject_kind'])} "
+            f"{_code(approval['subject_id'])}; decision {_code(approval['decision_id'])}; "
+            f"valid until {_code(approval['valid_until'])}."
+        )
+
+    blockers = []
+    for decision in result["decisions"]:
+        if decision["decision"] in {
+            "BLOCKED", "DEFER_PROVIDER_RECONCILIATION", "PENDING_SCORE",
+            "REJECT", "REVIEW_ARTIFACTS",
+        }:
+            blockers.append(decision.get("reason") or decision["decision"])
+    if unresolved_intents:
+        blockers.append("At least one external intent is unresolved; retry is prohibited.")
+    if campaign.get("stop_requested") is True:
+        blockers.append("The campaign stop flag is set.")
+    authorization = campaign.get("authorization") or {}
+    if authorization.get("routine_runs_and_submissions") is not True:
+        blockers.append("Routine runs and submissions are not authorized.")
+    resource_policy = campaign.get("resource_policy") or {}
+    if (
+        "campaign_wall_or_cost_ceiling" in resource_policy
+        and resource_policy["campaign_wall_or_cost_ceiling"] is None
+    ):
+        blockers.append("The whole-campaign wall-time or cost ceiling is unresolved.")
+    scheduler = campaign.get("scheduler")
+    if isinstance(scheduler, dict) and scheduler.get("status") != "ACTIVE":
+        blockers.append(f"The recorded scheduler state is {scheduler.get('status')!r}.")
+    if not active_approvals:
+        blockers.append("No unconsumed, unexpired operational approval exists.")
+
+    configured_next = campaign.get("next_task")
+    if isinstance(configured_next, dict):
+        blockers.extend(str(value) for value in configured_next.get("blockers", []))
+    blockers = list(dict.fromkeys(blockers))
+
+    if isinstance(configured_next, dict) and configured_next.get("task"):
+        next_task = str(configured_next["task"])
+    elif unresolved_intents:
+        next_task = f"Reconcile unresolved intent {unresolved_intents[0]['intent_id']} before any retry."
+    elif active_jobs:
+        next_task = f"Reconcile or monitor active job {active_jobs[0]['run_id']} through its recorded deadline."
+    elif blockers:
+        next_task = f"Resolve the first recorded blocker: {blockers[0]}"
+    else:
+        next_task = "Review newly eligible evidence; this review recorded no pending work."
+
+    input_paths: list[object] = [decision_path, state_path, observation_path]
+    if isinstance(configured_next, dict):
+        for artifact in configured_next.get("exact_input_artifacts", []):
+            if isinstance(artifact, dict):
+                value = canonical_json(artifact)
+                if value not in input_paths:
+                    input_paths.append(value)
+    for job in active_jobs:
+        execution = job["spec"].get("execution", {})
+        for value in (
+            execution.get("worker_progress_path"), job["spec"].get("result_manifest_path"),
+        ):
+            if value is not None and value not in input_paths:
+                input_paths.append(value)
+    lines.extend([
+        "",
+        "## Next task and exact inputs",
+        "",
+        f"- Next task: {next_task}",
+        "- Inputs: " + ", ".join(_code(path) for path in input_paths) + ".",
+        "",
+        "## Outstanding blockers",
+        "",
+    ])
+    lines.extend(f"- {blocker}" for blocker in blockers)
+    if not blockers:
+        lines.append("- None recorded.")
+    return "\n".join(lines) + "\n"
+
+
 def review_once(store: CampaignStore, kaggle: KaggleCLI, config: ReviewConfig,
                 *, inventory: Callable[[], dict], release_id: str | None = None,
                 launch_request: dict | None = None,
@@ -124,6 +369,7 @@ def review_once(store: CampaignStore, kaggle: KaggleCLI, config: ReviewConfig,
     now = datetime.now(UTC)
     review_id = "review-" + now.strftime("%Y%m%dT%H%M%S%fZ")
     directory = config.receipt_root / review_id
+    handoff_path = _handoff_destination(store)
     decisions = []
 
     def check_time():
@@ -287,12 +533,11 @@ def review_once(store: CampaignStore, kaggle: KaggleCLI, config: ReviewConfig,
                 decisions.append({"decision": "BLOCKED", "run_id": launch_request["spec"]["run_id"], "reason": str(exc)})
         if not decisions:
             decisions.append({"decision": "NO_CHANGE", "reason": "No new tracked evidence or explicitly eligible action"})
-        after = _state_snapshot(store, directory / "after.json")
         result = {"review_id": review_id, "campaign_id": campaign["campaign_id"],
             "reviewed_at": now.isoformat(), "finished_at": datetime.now(UTC).isoformat(),
             "elapsed_seconds": time.monotonic() - started,
             "mutation_enabled": config.mutation_enabled, "fencing_token": lease.fencing_token,
-            "decisions": decisions, "state_version": after["state_version"],
+            "decisions": decisions,
             "observation_sha256": hashlib.sha256(canonical_json(observations).encode()).hexdigest()}
         # Only a changed actionable decision warrants another user notification.
         stable = hashlib.sha256(canonical_json(decisions).encode()).hexdigest()
@@ -300,7 +545,22 @@ def review_once(store: CampaignStore, kaggle: KaggleCLI, config: ReviewConfig,
         store.update_campaign({"last_review_id": review_id, "last_decision_sha256": stable,
                                "last_review_receipt": str(directory / "decision.json")},
             reviewer=config.owner, reason="Persisted bounded reviewer decision", fencing_token=lease.fencing_token)
-        atomic_json(directory / "decision.json", result)
+        after_path = directory / "after.json"
+        after = _state_snapshot(store, after_path)
+        result["state_version"] = after["state_version"]
+        decision_path = directory / "decision.json"
+        atomic_json(decision_path, result)
+        _atomic_text(
+            handoff_path,
+            _handoff_markdown(
+                store,
+                after,
+                result,
+                state_path=after_path,
+                observation_path=directory / "observations.json",
+                decision_path=decision_path,
+            ),
+        )
     return result
 
 

@@ -31,6 +31,14 @@ full rehearsal. E1 advancement remains rejected; conditional E2-E5 work remains
 unadmitted, and routine campaign authorization and scheduler activation remain
 open.
 
+The [readiness refresh](../experiments/campaign-readiness-2026-09-08.md) records
+the corrected telemetry package's three identical local builds and executed
+embedded-writer smoke, fresh authenticated rules/account limits, and the
+remaining conditional science gates. It is still unlaunched and unadmitted.
+The original E1 image-inspection requirement is evidenced by the retained eight
+AI-reviewed sheets; a human/domain-expert review is not an additional requirement
+of the supplied plan.
+
 The corrected full-suite evidence is recorded in the
 [campaign suite verification report](../experiments/campaign-suite-verification-2026-09-08.md).
 A root-clean native Windows run provisioned independently through `uv` passed

@@ -1,0 +1,41 @@
+{
+  "imported_at_utc": "2026-09-08T00:55:48.7401907Z",
+  "source": "User-provided Downloads files; instructions remain subordinate to actual user authorization",
+  "files": [
+    {
+      "file": "HOURLY_HELPER.md",
+      "sha256": "b8eca44e800f59728020d371adcaba25e84dd89e8459790312555d31360e53cd",
+      "bytes": 10945
+    },
+    {
+      "file": "VALIDATION_PROTOCOL.md",
+      "sha256": "33df0f678cc8bcc20ff86c4e7bc5f7d4bf3e78d9be59b8d67f3cbf7a6441c0b3",
+      "bytes": 9099
+    },
+    {
+      "file": "EXPERIMENT_PLAN.md",
+      "sha256": "12411e9a26d19a2cd691233378e717418437a8eb62daf3759741425fe0996ddd",
+      "bytes": 15229
+    },
+    {
+      "file": "GPU_OPERATIONS.md",
+      "sha256": "d9e10bc8133655e2bb73a53616d443fd10a71daca4a622e29c453f4677e75249",
+      "bytes": 8968
+    },
+    {
+      "file": "EVIDENCE_REGISTER.md",
+      "sha256": "dda466b20f5b6eba47906004e897df3ac71cdc0233168205d9ba69f45c7ecf98",
+      "bytes": 10316
+    },
+    {
+      "file": "STATE_TEMPLATES.md",
+      "sha256": "95b4723db8b5f8e1297ecd5f0bf42f5da74ead89478400764c9749af88c7a346",
+      "bytes": 10237
+    },
+    {
+      "file": "SUBMISSION_RUNBOOK.md",
+      "sha256": "14757348b64755e36b6ceb4738c02aba0e22fb5f28e84a1ba49a245fb83f5ae0",
+      "bytes": 10965
+    }
+  ]
+}

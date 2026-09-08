@@ -1,0 +1,9 @@
+{
+  "activation_replays": [
+    {"arithmetic": "native_float16", "device": "original_cuda", "role": "frozen_control"},
+    {"arithmetic": "float32", "device": "original_cuda", "role": "activation_ablation"}
+  ],
+  "cache_storage_dtype": "float32_exact_representation_of_native_logits",
+  "model_forward": "cuda_autocast",
+  "variant": "native_amp"
+}

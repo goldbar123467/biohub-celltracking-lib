@@ -1,0 +1,3 @@
+* -text whitespace=cr-at-eol
+# Preserve the plotting library's generated path formatting.
+*.svg -whitespace

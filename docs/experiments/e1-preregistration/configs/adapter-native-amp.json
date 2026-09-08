@@ -1,0 +1,15 @@
+{
+  "device": "cuda",
+  "inference_config": {
+    "link_distance_um": 8.0,
+    "max_nodes_per_frame": 2000,
+    "nms_radius_um": 3.0,
+    "overlap": 16,
+    "threshold": 0.3,
+    "tile_size": 64,
+    "xy_stride": 4
+  },
+  "inference_precision": "native_amp",
+  "model_config": {"base_channels": 12},
+  "model_format": "state_dict"
+}

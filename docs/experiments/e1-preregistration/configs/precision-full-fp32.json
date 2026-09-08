@@ -1,0 +1,8 @@
+{
+  "activation_replays": [
+    {"arithmetic": "float32", "device": "original_cuda", "role": "full_float32_ablation"}
+  ],
+  "cache_storage_dtype": "float32",
+  "model_forward": "full_float32_cuda_autocast_disabled",
+  "variant": "full_float32"
+}

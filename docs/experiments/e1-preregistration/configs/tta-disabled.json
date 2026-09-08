@@ -1,0 +1,5 @@
+{
+  "enabled": false,
+  "transforms": [],
+  "reason": "biohub_ct.pipelines.learned.frame_probabilities has no TTA"
+}

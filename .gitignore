@@ -20,7 +20,7 @@ __pycache__/
 .env
 .env.*
 !.env.example
-data/
+/data/
 work/
 cache/
 checkpoints/
@@ -36,6 +36,17 @@ kaggle.json
 /configs/vast_ed25519.pub
 /docs/local-setup.md
 /reports/
+# Historical experiment evidence remains available locally, outside public source.
+/docs/campaign-plan/helper-activation.md
+/docs/experiments/e1-preregistration/admitted-capture-run-index.json
+/docs/experiments/e1-preregistration/annotation-identities.json
+/docs/experiments/e1-preregistration/evaluator-plan-r6.json
+/docs/experiments/e1-preregistration/e1-diagnostic-summary.json
+/docs/experiments/e1-preregistration/e1-diagnostic-frontier.csv
+/docs/experiments/e1-preregistration/e1-diagnostic-frontier.png
+/docs/experiments/e1-preregistration/e1-diagnostic-frontier.svg
+/docs/experiments/e1-preregistration/visual-review.json
+/docs/experiments/e1-preregistration/SHA256SUMS
 *.pt
 *.pth
 *.ckpt

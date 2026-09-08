@@ -1,0 +1,1133 @@
+{
+  "advancement_rule": {
+    "all_conditions_required": true,
+    "annotated_recall_absolute_loss_max": 0.01,
+    "count_ratio_relative_reduction_min": 0.2,
+    "fixed_linker_adjusted_edge_score_delta_min_exclusive": 0.0,
+    "matched_localization_median_increase_um_max": 0.40625,
+    "matched_localization_p95_increase_um_max": 1.625,
+    "per_clip_cap_rate_delta_max": 0.0,
+    "per_frame_cap_rate_delta_max": 0.0,
+    "scope": "A pass is permission for a preregistered full-population evaluation, not release evidence."
+  },
+  "cache_contract": {
+    "array_payload_bytes_per_frame": 2097200,
+    "attempt_local_rule": "Every payload, sidecar, and index lives under the admitted run exclusive attempt/cache directory. The cache reference and progress are attempt-local, and result.json is the separately declared result manifest.",
+    "cache_count": 16,
+    "disk_reservation_mib": 40,
+    "hash_rule": "Worker must read each actual frame and compute/recheck hashes. A preregistered input hash mismatch fails the run; no missing output hash may be filled from expectation.",
+    "identity_components": [
+      "model_sha256",
+      "source_sha256",
+      "adapter_config_sha256",
+      "input_frame_typed_array_sha256",
+      "transform_sha256",
+      "precision_sha256",
+      "tta_sha256",
+      "output_schema"
+    ],
+    "normalized_frame_shape_zyx": [
+      64,
+      64,
+      64
+    ],
+    "output_schema": "biohub.learned.per_tile_logits.v1",
+    "payload_arrays": [
+      "logits_float32",
+      "blend_weights_float32",
+      "origins_zyx_int64",
+      "stops_zyx_int64"
+    ],
+    "raw_cache_payload_shape_nzyx": [
+      1,
+      64,
+      64,
+      64
+    ],
+    "result_artifact_rule": "Worker result artifact_sha256 must exactly cover cache-index.json, both NPZ payloads, both manifest sidecars, cache-reference.json, and progress.json; result.json is bound separately by result_manifest_path.",
+    "tiles_per_frame": 1,
+    "total_array_payload_bytes": 33555200,
+    "total_array_payload_mib": 32.000732421875,
+    "worker_generated_fields": [
+      "identity_sha256",
+      "normalized_frame_sha256",
+      "npz_file_sha256",
+      "manifest_file_sha256",
+      "per_array_sha256"
+    ]
+  },
+  "classification": "These four fold0 outer clips and frames 0/50 were inspected in the 2026-09-07 precision audit and partial outer evaluation. They are diagnostic data and are not held-out or release evidence.",
+  "completeness_gate": {
+    "current_status": "BLOCKED_MISSING_EXECUTION_AND_FULL_POPULATION_METRICS",
+    "full_population_followup_required": [
+      "complete temporal clip coverage",
+      "fixed-linker adjusted edge score on identical coverage",
+      "estimated-node count ratio on the metric population",
+      "per-clip cap rate",
+      "complete stage timing"
+    ],
+    "missing_value_rule": "Any missing, null, partial-coverage, mismatched-identity, failed parity, or nonfinite metric makes the candidate ineligible. Isolated-frame pilot results remain diagnostic even when all frame-level fields are complete.",
+    "required_for_any_advancement": [
+      "control_probability_bitwise_parity",
+      "annotated_node_recall",
+      "matched_localization_median_um",
+      "matched_localization_p95_um",
+      "predicted_node_count",
+      "estimated_node_count",
+      "node_count_ratio",
+      "raw_local_maximum_voxels",
+      "connected_plateau_count",
+      "plateau_voxel_count_distribution",
+      "plateau_representative_displacement_um",
+      "pre_cap_candidate_count",
+      "clipped_candidate_fraction",
+      "per_frame_cap_rate",
+      "per_clip_cap_rate",
+      "fixed_linker_adjusted_edge_score",
+      "stage_runtime_seconds",
+      "overlay_review"
+    ]
+  },
+  "config_contract": {
+    "files": {
+      "adapter-full-fp32.json": {
+        "canonical_json_sha256": "d3ff8e4ff05ef86509ccba8bbbaf43900bc1e6015b80b09ab913c62c1fc51ed7",
+        "file_sha256": "e9deb357e168806d2aa11fd3d752575d6e29287fd10c1cd6e1d2dda1473450ce"
+      },
+      "adapter-native-amp.json": {
+        "canonical_json_sha256": "607b7f340474f6850c5020c56ca0d24bac741a3fc6755b99e769985bca96edac",
+        "file_sha256": "7bb23fed044799ab2216208013d5e6a0576361bbbad55c3d32cdb640c5484d6c"
+      },
+      "precision-full-fp32.json": {
+        "canonical_json_sha256": "11177eb4d0d336c40fcb616f255425c1fb76f74167c99f6ef089734c35a79326",
+        "file_sha256": "6806ade923b04e6b58b8f0f1d22587f6d855b4afce1855d2ed3fa7cf3200d94c"
+      },
+      "precision-native-amp.json": {
+        "canonical_json_sha256": "9fc34685ad5ca5443e9e316c4ff2d991a63c7aea43848a4270d38a725f7ba99c",
+        "file_sha256": "cd99eaba5fa932a852721c09564b4239cfda5fb62dd70ecd324125f0b507f92f"
+      },
+      "transform.json": {
+        "canonical_json_sha256": "cc7ddb68d102b243ffbd3a9919599b077941dfc1f7e36dbbd520749a7b98b498",
+        "file_sha256": "793f6c5cd8bbddb6546e690490bb606f8ac3a199eeb2ca30f4851b292ae7914d"
+      },
+      "tta-disabled.json": {
+        "canonical_json_sha256": "5baa921418e56328a1bbaac4c907a7ec622a2797cc8637085b2fcb0dac1194cd",
+        "file_sha256": "5c5256caeebbc81faae885500c8c6fc8fc2b2aba97538bbd34db3f675657576a"
+      }
+    },
+    "root": "work/e1-diagnostic-configs"
+  },
+  "device_fidelity": {
+    "control_rule": "Native and float32 activation replay use the payload original CUDA device. A CPU replay is a separately labeled device-change diagnostic and cannot establish bitwise control parity.",
+    "cpu_replay_label": "DEVICE_CHANGED_CPU_DIAGNOSTIC",
+    "tta": {
+      "enabled": false,
+      "reason": "The frozen learned production source has no TTA. Enabling any transform requires a new TTA identity and implementation."
+    }
+  },
+  "evidence_class": "diagnostic_reuse_not_heldout",
+  "extraction_variants": [
+    {
+      "control": true,
+      "definition": "3x3x3 nearest-mode equality maxima followed by existing anisotropic NMS and 2000-node safeguard",
+      "id": "legacy_voxel_maxima"
+    },
+    {
+      "control": false,
+      "definition": "26-connected equal-score local maxima, physical-centroid representative with lexicographic tie break, then deterministic physical NMS",
+      "id": "connected_plateau"
+    }
+  ],
+  "frozen_model": {
+    "bytes": 810837,
+    "checkpoint_step": 32000,
+    "format": "tensor_only_state_dict",
+    "inference_manifest_path": "work/kaggle-point-model-20260907/inference-model.json",
+    "inference_manifest_sha256": "6add0ba0273cc1975221f2828fc1610655c26e06d15f8c8704d59a960d4417ab",
+    "model": "PointDetector3D",
+    "model_config": {
+      "base_channels": 12
+    },
+    "original_checkpoint_sha256": "e83396022fdb2452fbc875fcf134c2426fef464b4e3218e1d50c73c74f03beda",
+    "path_vast": "/workspace/biohub-cell-tracking/work/kaggle-point-model-20260907/detector-weights.pt",
+    "path_windows": "C:/Users/thecl/Documents/Biohub-Cell-Tracking/work/kaggle-point-model-20260907/detector-weights.pt",
+    "sha256": "2cdce85448f833c80fe0be6d5245ea860124ac508965bb7f4dac1d78c8eb2ad5"
+  },
+  "hypothesis": "Native float16 activation ties and legacy equal-maximum handling explain a measurable part of frozen fold0 detector count inflation without requiring fitting.",
+  "initial_grid": {
+    "configurations_per_precision_extraction_variant": 9,
+    "frozen_control": {
+      "extraction": "legacy_voxel_maxima",
+      "max_nodes_per_frame": 2000,
+      "precision": "amp_native_sigmoid",
+      "radius_um": 3.0,
+      "threshold_probability": 0.3
+    },
+    "maximum_allowed_per_variant": 15,
+    "radii_um": [
+      2.0,
+      3.0,
+      4.0
+    ],
+    "rationale": "Thresholds are the three values used by the frozen campaign and prior audit. Radius 3.0 um is control; 2.0 and 4.0 bracket it in physical space using the recorded anisotropic scale. No public-reference threshold is transferred.",
+    "thresholds_logit": [
+      -0.8472978603872036,
+      0.0,
+      0.8472978603872034
+    ],
+    "thresholds_probability": [
+      0.3,
+      0.5,
+      0.7
+    ],
+    "total_initial_configurations": 54,
+    "variant_count": 6
+  },
+  "plan_id": "e1-frozen-learned-eight-frame-pilot-v1",
+  "population": {
+    "coverage_limit": "Isolated frames do not contain the complete temporal population needed for fixed-linker or clip-level adjusted-score evidence.",
+    "dataset_root_vast": "/workspace/biohub-cell-tracking/data/train",
+    "datasets": [
+      {
+        "dataset_id": "44b6_0113de3b",
+        "frames": [
+          {
+            "frame": 0,
+            "input_frame_typed_array_sha256": "3587f4ae86104ae634f8a47d7a8c7a3f6e43aff331062d89ef3916a4511d622a",
+            "raw_bytes": 8388608,
+            "raw_dtype": "<u2",
+            "raw_shape_zyx": [
+              64,
+              256,
+              256
+            ]
+          },
+          {
+            "frame": 50,
+            "input_frame_typed_array_sha256": "c1dc58206040c4a717325e841f0c6f98ac680e9877ab3254f8fdae1d8c73c7d0",
+            "raw_bytes": 8388608,
+            "raw_dtype": "<u2",
+            "raw_shape_zyx": [
+              64,
+              256,
+              256
+            ]
+          }
+        ],
+        "scale_zyx_um": [
+          1.625,
+          0.40625,
+          0.40625
+        ],
+        "shape_tzyx": [
+          100,
+          64,
+          256,
+          256
+        ],
+        "zarr_path": "/workspace/biohub-cell-tracking/data/train/44b6_0113de3b.zarr"
+      },
+      {
+        "dataset_id": "44b6_0b24845f",
+        "frames": [
+          {
+            "frame": 0,
+            "input_frame_typed_array_sha256": "9a46ff48b8afd9ac980095fd81cfe70716be26057aabb07183785c4eb7ea6aae",
+            "raw_bytes": 8388608,
+            "raw_dtype": "<u2",
+            "raw_shape_zyx": [
+              64,
+              256,
+              256
+            ]
+          },
+          {
+            "frame": 50,
+            "input_frame_typed_array_sha256": "8b5031eacfa943ec40be4df5e8165e8e96c73f73a10e63edcf0b4a3f54196d89",
+            "raw_bytes": 8388608,
+            "raw_dtype": "<u2",
+            "raw_shape_zyx": [
+              64,
+              256,
+              256
+            ]
+          }
+        ],
+        "scale_zyx_um": [
+          1.625,
+          0.40625,
+          0.40625
+        ],
+        "shape_tzyx": [
+          100,
+          64,
+          256,
+          256
+        ],
+        "zarr_path": "/workspace/biohub-cell-tracking/data/train/44b6_0b24845f.zarr"
+      },
+      {
+        "dataset_id": "44b6_0db75fae",
+        "frames": [
+          {
+            "frame": 0,
+            "input_frame_typed_array_sha256": "aa454aa2dae659eb6c438b6c866099c3405b34107c90b715147a5fe1681c461d",
+            "raw_bytes": 8388608,
+            "raw_dtype": "<u2",
+            "raw_shape_zyx": [
+              64,
+              256,
+              256
+            ]
+          },
+          {
+            "frame": 50,
+            "input_frame_typed_array_sha256": "b5ef5123481de1f0ecd65232c9b6558ed79e5c2db3345969f24a0c4da59bd24f",
+            "raw_bytes": 8388608,
+            "raw_dtype": "<u2",
+            "raw_shape_zyx": [
+              64,
+              256,
+              256
+            ]
+          }
+        ],
+        "scale_zyx_um": [
+          1.625,
+          0.40625,
+          0.40625
+        ],
+        "shape_tzyx": [
+          100,
+          64,
+          256,
+          256
+        ],
+        "zarr_path": "/workspace/biohub-cell-tracking/data/train/44b6_0db75fae.zarr"
+      },
+      {
+        "dataset_id": "44b6_12dfb391",
+        "frames": [
+          {
+            "frame": 0,
+            "input_frame_typed_array_sha256": "b7b3ac3ec72f937f0380db312b9457f098c27a23683d25b432f0c63866bd56b7",
+            "raw_bytes": 8388608,
+            "raw_dtype": "<u2",
+            "raw_shape_zyx": [
+              64,
+              256,
+              256
+            ]
+          },
+          {
+            "frame": 50,
+            "input_frame_typed_array_sha256": "0c367a30f8e5e1ca54d3b6207adc5c6b0e05373f47fa07b58afc198c13962845",
+            "raw_bytes": 8388608,
+            "raw_dtype": "<u2",
+            "raw_shape_zyx": [
+              64,
+              256,
+              256
+            ]
+          }
+        ],
+        "scale_zyx_um": [
+          1.625,
+          0.40625,
+          0.40625
+        ],
+        "shape_tzyx": [
+          100,
+          64,
+          256,
+          256
+        ],
+        "zarr_path": "/workspace/biohub-cell-tracking/data/train/44b6_12dfb391.zarr"
+      }
+    ],
+    "frame_count": 8,
+    "frame_indices_per_dataset": [
+      0,
+      50
+    ],
+    "selection_time": "frozen before this pilot from the prior eight-frame audit"
+  },
+  "post_run_requirements": [
+    "Verify every remote model/source/config hash before admission.",
+    "Verify every worker input-frame hash against this plan after the actual frame read.",
+    "Require COMPLETE result.json with matching run, intent, fencing token and run-spec SHA-256.",
+    "Reload every NPZ through the strict learned cache reader and verify manifest and per-array hashes.",
+    "On original CUDA device, compare native replay bitwise with production frame_probabilities before using control metrics.",
+    "Write a single complete metrics table over identical eight-frame coverage and preserve per-frame rows.",
+    "Keep unavailable full-temporal metrics explicitly missing and block advancement."
+  ],
+  "precision_variants": [
+    {
+      "activation": "native recorded dtype on original CUDA device",
+      "cache": "native-amp",
+      "id": "amp_native_sigmoid",
+      "model_forward": "CUDA autocast",
+      "role": "frozen control",
+      "runtime_assertions": [
+        "native_logit_dtype == torch.float16",
+        "inference_device_type == cuda",
+        "reconstructed probability is bitwise equal to contemporaneous production frame_probabilities"
+      ]
+    },
+    {
+      "activation": "float32 on original CUDA device",
+      "cache": "native-amp",
+      "id": "amp_logits_fp32_sigmoid",
+      "model_forward": "same cached CUDA-autocast logits as control",
+      "role": "activation-only ablation",
+      "runtime_assertions": [
+        "same cache identity as amp_native_sigmoid",
+        "device remains cuda"
+      ]
+    },
+    {
+      "activation": "float32 on original CUDA device",
+      "cache": "full-fp32",
+      "id": "full_fp32",
+      "model_forward": "CUDA with autocast disabled",
+      "role": "model-forward plus activation ablation",
+      "runtime_assertions": [
+        "native_logit_dtype == torch.float32",
+        "inference_device_type == cuda"
+      ]
+    }
+  ],
+  "refinement_policy": {
+    "anchor_selection": "Highest annotated recall, then lowest node count, then highest threshold, then smallest radius, then lexical variant id.",
+    "candidates": "For the selected anchor only, evaluate threshold midpoints to each adjacent initial threshold at the anchor radius and radius midpoints to each adjacent initial radius at the anchor threshold; omit out-of-range neighbors and duplicates.",
+    "maximum_configurations": 6,
+    "maximum_stages": 1,
+    "stop": "No second refinement, no threshold/radius extension, and no choice from held-out or leaderboard results.",
+    "trigger": "After every initial configuration has complete frame-level metrics, choose one precision/extraction variant whose best initial candidate has recall loss <=0.01 and cap rate <= control but has not met the count reduction target. If none exists, skip refinement."
+  },
+  "required_metrics": {
+    "annotated_node_recall": {
+      "status": "MISSING_NOT_RUN",
+      "value": null
+    },
+    "clipped_candidate_fraction": {
+      "status": "MISSING_NOT_RUN",
+      "value": null
+    },
+    "connected_plateau_count": {
+      "status": "MISSING_NOT_RUN",
+      "value": null
+    },
+    "control_probability_bitwise_parity": {
+      "status": "MISSING_NOT_RUN",
+      "value": null
+    },
+    "estimated_node_count": {
+      "status": "MISSING_NOT_RUN",
+      "value": null
+    },
+    "fixed_linker_adjusted_edge_score": {
+      "status": "MISSING_NOT_RUN",
+      "value": null
+    },
+    "matched_localization_median_um": {
+      "status": "MISSING_NOT_RUN",
+      "value": null
+    },
+    "matched_localization_p95_um": {
+      "status": "MISSING_NOT_RUN",
+      "value": null
+    },
+    "node_count_ratio": {
+      "status": "MISSING_NOT_RUN",
+      "value": null
+    },
+    "overlay_review": {
+      "status": "MISSING_NOT_RUN",
+      "value": null
+    },
+    "per_clip_cap_rate": {
+      "status": "MISSING_NOT_RUN",
+      "value": null
+    },
+    "per_frame_cap_rate": {
+      "status": "MISSING_NOT_RUN",
+      "value": null
+    },
+    "plateau_representative_displacement_um": {
+      "status": "MISSING_NOT_RUN",
+      "value": null
+    },
+    "plateau_voxel_count_distribution": {
+      "status": "MISSING_NOT_RUN",
+      "value": null
+    },
+    "pre_cap_candidate_count": {
+      "status": "MISSING_NOT_RUN",
+      "value": null
+    },
+    "predicted_node_count": {
+      "status": "MISSING_NOT_RUN",
+      "value": null
+    },
+    "raw_local_maximum_voxels": {
+      "status": "MISSING_NOT_RUN",
+      "value": null
+    },
+    "stage_runtime_seconds": {
+      "status": "MISSING_NOT_RUN",
+      "value": null
+    }
+  },
+  "resource_bounds": {
+    "aggregate_hard_wall_seconds_if_serial": 960,
+    "frame_reads": 16,
+    "gpu_launch": "Controller only; this plan performs no launch.",
+    "max_wall_seconds_per_worker": 120,
+    "model_forward_tiles": 16,
+    "raw_bytes_read": 134217728,
+    "serial_worker_runs": 8,
+    "streaming_peak_contract": "One raw frame and one tile payload at a time; never materialize a 4D video.",
+    "time_statement": "These are workload counts and hard deadlines from geometry. They are not a measured throughput claim; record observed stage timing from the Vast run."
+  },
+  "schema_version": 1,
+  "source_contract": {
+    "combined_source_sha256": "5226fe6095ca4f53a0865b17f60082802f7c6340b0e4514ef6653d0c2812c199",
+    "files": {
+      "scripts/cache_detection_diagnostics.py": "3f264ed56187bd2dac7e21da4a2d123d4c6ccc193b3054a3dbabe0622547e94a",
+      "src/biohub_ct/campaign/detection_diagnostics.py": "cdc423c2a4a8c0239f692b61fbc6ff5723a101322361b39140abac3027d9f245",
+      "src/biohub_ct/campaign/learned_logit_adapter.py": "06ed9fa6271682eeea31d70165ca63e14ae3a7be3b827cb11245baf225dd488e",
+      "src/biohub_ct/pipelines/learned.py": "401250c2b9ce4edf259fb082ad0e307faff96a9375cd834019f36ab1fc527dec",
+      "src/biohub_ct/training/data.py": "6b82b309f9766451a11e22a981970ecfdefc6bcab5ce24a6892afb8e376c9857",
+      "src/biohub_ct/training/model.py": "4fef2a3f2d3aa40fbf6a4d6605f5faebe8b5a405428861875b6e9c0e5e5e32f4"
+    },
+    "require_remote_exact_match_before_run": true
+  },
+  "status": "PREREGISTERED_NOT_EXECUTED",
+  "worker_runs": [
+    {
+      "argv": [
+        "/workspace/biohub-cell-tracking/.venv/bin/python",
+        "/workspace/biohub-cell-tracking/scripts/cache_detection_diagnostics.py",
+        "--input-zarr",
+        "/workspace/biohub-cell-tracking/data/train/44b6_0113de3b.zarr",
+        "--dataset-id",
+        "44b6_0113de3b",
+        "--output-dir",
+        "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-native-amp-44b6_0113de3b/cache",
+        "--model-file",
+        "/workspace/biohub-cell-tracking/work/kaggle-point-model-20260907/detector-weights.pt",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/scripts/cache_detection_diagnostics.py",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/src/biohub_ct/campaign/detection_diagnostics.py",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/src/biohub_ct/campaign/learned_logit_adapter.py",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/src/biohub_ct/pipelines/learned.py",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/src/biohub_ct/training/data.py",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/src/biohub_ct/training/model.py",
+        "--adapter",
+        "biohub_ct.campaign.learned_logit_adapter:create_adapter",
+        "--adapter-config-json",
+        "/workspace/biohub-cell-tracking/work/e1-diagnostic-configs/adapter-native-amp.json",
+        "--transform-json",
+        "/workspace/biohub-cell-tracking/work/e1-diagnostic-configs/transform.json",
+        "--precision-json",
+        "/workspace/biohub-cell-tracking/work/e1-diagnostic-configs/precision-native-amp.json",
+        "--tta-json",
+        "/workspace/biohub-cell-tracking/work/e1-diagnostic-configs/tta-disabled.json",
+        "--max-frames",
+        "2",
+        "--frame-index",
+        "0",
+        "--frame-index",
+        "50",
+        "--max-wall-seconds",
+        "120"
+      ],
+      "controller_environment": {
+        "BIOHUB_ATTEMPT_DIR": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-native-amp-44b6_0113de3b",
+        "BIOHUB_FENCING_TOKEN": "CONTROLLER_MUST_BIND_NONNEGATIVE_INTEGER",
+        "BIOHUB_INTENT_ID": "CONTROLLER_MUST_BIND_APPROVED_INTENT",
+        "BIOHUB_PROGRESS_PATH": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-native-amp-44b6_0113de3b/progress.json",
+        "BIOHUB_RUN_ID": "e1-pilot-native-amp-44b6_0113de3b",
+        "BIOHUB_RUN_SPEC_SHA256": "CONTROLLER_MUST_BIND_64_LOWERCASE_HEX"
+      },
+      "dataset_id": "44b6_0113de3b",
+      "expected_outputs": {
+        "attempt_cache_reference": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-native-amp-44b6_0113de3b/cache-reference.json",
+        "attempt_progress": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-native-amp-44b6_0113de3b/progress.json",
+        "attempt_result": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-native-amp-44b6_0113de3b/result.json",
+        "cache_index": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-native-amp-44b6_0113de3b/cache/cache-index.json",
+        "frame_caches": [
+          "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-native-amp-44b6_0113de3b/cache/44b6_0113de3b-frame-00000.learned-tiles.npz",
+          "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-native-amp-44b6_0113de3b/cache/44b6_0113de3b-frame-00050.learned-tiles.npz"
+        ],
+        "frame_manifests": [
+          "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-native-amp-44b6_0113de3b/cache/44b6_0113de3b-frame-00000.learned-tiles.npz.manifest.json",
+          "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-native-amp-44b6_0113de3b/cache/44b6_0113de3b-frame-00050.learned-tiles.npz.manifest.json"
+        ]
+      },
+      "precision_capture": "native-amp",
+      "run_id": "e1-pilot-native-amp-44b6_0113de3b",
+      "run_spec_expected_artifacts": [
+        "reports/campaign-workers/e1-pilot-native-amp-44b6_0113de3b/cache/cache-index.json",
+        "reports/campaign-workers/e1-pilot-native-amp-44b6_0113de3b/cache/44b6_0113de3b-frame-00000.learned-tiles.npz",
+        "reports/campaign-workers/e1-pilot-native-amp-44b6_0113de3b/cache/44b6_0113de3b-frame-00050.learned-tiles.npz",
+        "reports/campaign-workers/e1-pilot-native-amp-44b6_0113de3b/cache/44b6_0113de3b-frame-00000.learned-tiles.npz.manifest.json",
+        "reports/campaign-workers/e1-pilot-native-amp-44b6_0113de3b/cache/44b6_0113de3b-frame-00050.learned-tiles.npz.manifest.json",
+        "reports/campaign-workers/e1-pilot-native-amp-44b6_0113de3b/cache-reference.json",
+        "reports/campaign-workers/e1-pilot-native-amp-44b6_0113de3b/progress.json"
+      ]
+    },
+    {
+      "argv": [
+        "/workspace/biohub-cell-tracking/.venv/bin/python",
+        "/workspace/biohub-cell-tracking/scripts/cache_detection_diagnostics.py",
+        "--input-zarr",
+        "/workspace/biohub-cell-tracking/data/train/44b6_0b24845f.zarr",
+        "--dataset-id",
+        "44b6_0b24845f",
+        "--output-dir",
+        "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-native-amp-44b6_0b24845f/cache",
+        "--model-file",
+        "/workspace/biohub-cell-tracking/work/kaggle-point-model-20260907/detector-weights.pt",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/scripts/cache_detection_diagnostics.py",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/src/biohub_ct/campaign/detection_diagnostics.py",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/src/biohub_ct/campaign/learned_logit_adapter.py",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/src/biohub_ct/pipelines/learned.py",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/src/biohub_ct/training/data.py",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/src/biohub_ct/training/model.py",
+        "--adapter",
+        "biohub_ct.campaign.learned_logit_adapter:create_adapter",
+        "--adapter-config-json",
+        "/workspace/biohub-cell-tracking/work/e1-diagnostic-configs/adapter-native-amp.json",
+        "--transform-json",
+        "/workspace/biohub-cell-tracking/work/e1-diagnostic-configs/transform.json",
+        "--precision-json",
+        "/workspace/biohub-cell-tracking/work/e1-diagnostic-configs/precision-native-amp.json",
+        "--tta-json",
+        "/workspace/biohub-cell-tracking/work/e1-diagnostic-configs/tta-disabled.json",
+        "--max-frames",
+        "2",
+        "--frame-index",
+        "0",
+        "--frame-index",
+        "50",
+        "--max-wall-seconds",
+        "120"
+      ],
+      "controller_environment": {
+        "BIOHUB_ATTEMPT_DIR": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-native-amp-44b6_0b24845f",
+        "BIOHUB_FENCING_TOKEN": "CONTROLLER_MUST_BIND_NONNEGATIVE_INTEGER",
+        "BIOHUB_INTENT_ID": "CONTROLLER_MUST_BIND_APPROVED_INTENT",
+        "BIOHUB_PROGRESS_PATH": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-native-amp-44b6_0b24845f/progress.json",
+        "BIOHUB_RUN_ID": "e1-pilot-native-amp-44b6_0b24845f",
+        "BIOHUB_RUN_SPEC_SHA256": "CONTROLLER_MUST_BIND_64_LOWERCASE_HEX"
+      },
+      "dataset_id": "44b6_0b24845f",
+      "expected_outputs": {
+        "attempt_cache_reference": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-native-amp-44b6_0b24845f/cache-reference.json",
+        "attempt_progress": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-native-amp-44b6_0b24845f/progress.json",
+        "attempt_result": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-native-amp-44b6_0b24845f/result.json",
+        "cache_index": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-native-amp-44b6_0b24845f/cache/cache-index.json",
+        "frame_caches": [
+          "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-native-amp-44b6_0b24845f/cache/44b6_0b24845f-frame-00000.learned-tiles.npz",
+          "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-native-amp-44b6_0b24845f/cache/44b6_0b24845f-frame-00050.learned-tiles.npz"
+        ],
+        "frame_manifests": [
+          "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-native-amp-44b6_0b24845f/cache/44b6_0b24845f-frame-00000.learned-tiles.npz.manifest.json",
+          "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-native-amp-44b6_0b24845f/cache/44b6_0b24845f-frame-00050.learned-tiles.npz.manifest.json"
+        ]
+      },
+      "precision_capture": "native-amp",
+      "run_id": "e1-pilot-native-amp-44b6_0b24845f",
+      "run_spec_expected_artifacts": [
+        "reports/campaign-workers/e1-pilot-native-amp-44b6_0b24845f/cache/cache-index.json",
+        "reports/campaign-workers/e1-pilot-native-amp-44b6_0b24845f/cache/44b6_0b24845f-frame-00000.learned-tiles.npz",
+        "reports/campaign-workers/e1-pilot-native-amp-44b6_0b24845f/cache/44b6_0b24845f-frame-00050.learned-tiles.npz",
+        "reports/campaign-workers/e1-pilot-native-amp-44b6_0b24845f/cache/44b6_0b24845f-frame-00000.learned-tiles.npz.manifest.json",
+        "reports/campaign-workers/e1-pilot-native-amp-44b6_0b24845f/cache/44b6_0b24845f-frame-00050.learned-tiles.npz.manifest.json",
+        "reports/campaign-workers/e1-pilot-native-amp-44b6_0b24845f/cache-reference.json",
+        "reports/campaign-workers/e1-pilot-native-amp-44b6_0b24845f/progress.json"
+      ]
+    },
+    {
+      "argv": [
+        "/workspace/biohub-cell-tracking/.venv/bin/python",
+        "/workspace/biohub-cell-tracking/scripts/cache_detection_diagnostics.py",
+        "--input-zarr",
+        "/workspace/biohub-cell-tracking/data/train/44b6_0db75fae.zarr",
+        "--dataset-id",
+        "44b6_0db75fae",
+        "--output-dir",
+        "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-native-amp-44b6_0db75fae/cache",
+        "--model-file",
+        "/workspace/biohub-cell-tracking/work/kaggle-point-model-20260907/detector-weights.pt",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/scripts/cache_detection_diagnostics.py",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/src/biohub_ct/campaign/detection_diagnostics.py",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/src/biohub_ct/campaign/learned_logit_adapter.py",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/src/biohub_ct/pipelines/learned.py",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/src/biohub_ct/training/data.py",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/src/biohub_ct/training/model.py",
+        "--adapter",
+        "biohub_ct.campaign.learned_logit_adapter:create_adapter",
+        "--adapter-config-json",
+        "/workspace/biohub-cell-tracking/work/e1-diagnostic-configs/adapter-native-amp.json",
+        "--transform-json",
+        "/workspace/biohub-cell-tracking/work/e1-diagnostic-configs/transform.json",
+        "--precision-json",
+        "/workspace/biohub-cell-tracking/work/e1-diagnostic-configs/precision-native-amp.json",
+        "--tta-json",
+        "/workspace/biohub-cell-tracking/work/e1-diagnostic-configs/tta-disabled.json",
+        "--max-frames",
+        "2",
+        "--frame-index",
+        "0",
+        "--frame-index",
+        "50",
+        "--max-wall-seconds",
+        "120"
+      ],
+      "controller_environment": {
+        "BIOHUB_ATTEMPT_DIR": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-native-amp-44b6_0db75fae",
+        "BIOHUB_FENCING_TOKEN": "CONTROLLER_MUST_BIND_NONNEGATIVE_INTEGER",
+        "BIOHUB_INTENT_ID": "CONTROLLER_MUST_BIND_APPROVED_INTENT",
+        "BIOHUB_PROGRESS_PATH": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-native-amp-44b6_0db75fae/progress.json",
+        "BIOHUB_RUN_ID": "e1-pilot-native-amp-44b6_0db75fae",
+        "BIOHUB_RUN_SPEC_SHA256": "CONTROLLER_MUST_BIND_64_LOWERCASE_HEX"
+      },
+      "dataset_id": "44b6_0db75fae",
+      "expected_outputs": {
+        "attempt_cache_reference": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-native-amp-44b6_0db75fae/cache-reference.json",
+        "attempt_progress": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-native-amp-44b6_0db75fae/progress.json",
+        "attempt_result": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-native-amp-44b6_0db75fae/result.json",
+        "cache_index": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-native-amp-44b6_0db75fae/cache/cache-index.json",
+        "frame_caches": [
+          "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-native-amp-44b6_0db75fae/cache/44b6_0db75fae-frame-00000.learned-tiles.npz",
+          "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-native-amp-44b6_0db75fae/cache/44b6_0db75fae-frame-00050.learned-tiles.npz"
+        ],
+        "frame_manifests": [
+          "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-native-amp-44b6_0db75fae/cache/44b6_0db75fae-frame-00000.learned-tiles.npz.manifest.json",
+          "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-native-amp-44b6_0db75fae/cache/44b6_0db75fae-frame-00050.learned-tiles.npz.manifest.json"
+        ]
+      },
+      "precision_capture": "native-amp",
+      "run_id": "e1-pilot-native-amp-44b6_0db75fae",
+      "run_spec_expected_artifacts": [
+        "reports/campaign-workers/e1-pilot-native-amp-44b6_0db75fae/cache/cache-index.json",
+        "reports/campaign-workers/e1-pilot-native-amp-44b6_0db75fae/cache/44b6_0db75fae-frame-00000.learned-tiles.npz",
+        "reports/campaign-workers/e1-pilot-native-amp-44b6_0db75fae/cache/44b6_0db75fae-frame-00050.learned-tiles.npz",
+        "reports/campaign-workers/e1-pilot-native-amp-44b6_0db75fae/cache/44b6_0db75fae-frame-00000.learned-tiles.npz.manifest.json",
+        "reports/campaign-workers/e1-pilot-native-amp-44b6_0db75fae/cache/44b6_0db75fae-frame-00050.learned-tiles.npz.manifest.json",
+        "reports/campaign-workers/e1-pilot-native-amp-44b6_0db75fae/cache-reference.json",
+        "reports/campaign-workers/e1-pilot-native-amp-44b6_0db75fae/progress.json"
+      ]
+    },
+    {
+      "argv": [
+        "/workspace/biohub-cell-tracking/.venv/bin/python",
+        "/workspace/biohub-cell-tracking/scripts/cache_detection_diagnostics.py",
+        "--input-zarr",
+        "/workspace/biohub-cell-tracking/data/train/44b6_12dfb391.zarr",
+        "--dataset-id",
+        "44b6_12dfb391",
+        "--output-dir",
+        "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-native-amp-44b6_12dfb391/cache",
+        "--model-file",
+        "/workspace/biohub-cell-tracking/work/kaggle-point-model-20260907/detector-weights.pt",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/scripts/cache_detection_diagnostics.py",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/src/biohub_ct/campaign/detection_diagnostics.py",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/src/biohub_ct/campaign/learned_logit_adapter.py",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/src/biohub_ct/pipelines/learned.py",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/src/biohub_ct/training/data.py",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/src/biohub_ct/training/model.py",
+        "--adapter",
+        "biohub_ct.campaign.learned_logit_adapter:create_adapter",
+        "--adapter-config-json",
+        "/workspace/biohub-cell-tracking/work/e1-diagnostic-configs/adapter-native-amp.json",
+        "--transform-json",
+        "/workspace/biohub-cell-tracking/work/e1-diagnostic-configs/transform.json",
+        "--precision-json",
+        "/workspace/biohub-cell-tracking/work/e1-diagnostic-configs/precision-native-amp.json",
+        "--tta-json",
+        "/workspace/biohub-cell-tracking/work/e1-diagnostic-configs/tta-disabled.json",
+        "--max-frames",
+        "2",
+        "--frame-index",
+        "0",
+        "--frame-index",
+        "50",
+        "--max-wall-seconds",
+        "120"
+      ],
+      "controller_environment": {
+        "BIOHUB_ATTEMPT_DIR": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-native-amp-44b6_12dfb391",
+        "BIOHUB_FENCING_TOKEN": "CONTROLLER_MUST_BIND_NONNEGATIVE_INTEGER",
+        "BIOHUB_INTENT_ID": "CONTROLLER_MUST_BIND_APPROVED_INTENT",
+        "BIOHUB_PROGRESS_PATH": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-native-amp-44b6_12dfb391/progress.json",
+        "BIOHUB_RUN_ID": "e1-pilot-native-amp-44b6_12dfb391",
+        "BIOHUB_RUN_SPEC_SHA256": "CONTROLLER_MUST_BIND_64_LOWERCASE_HEX"
+      },
+      "dataset_id": "44b6_12dfb391",
+      "expected_outputs": {
+        "attempt_cache_reference": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-native-amp-44b6_12dfb391/cache-reference.json",
+        "attempt_progress": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-native-amp-44b6_12dfb391/progress.json",
+        "attempt_result": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-native-amp-44b6_12dfb391/result.json",
+        "cache_index": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-native-amp-44b6_12dfb391/cache/cache-index.json",
+        "frame_caches": [
+          "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-native-amp-44b6_12dfb391/cache/44b6_12dfb391-frame-00000.learned-tiles.npz",
+          "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-native-amp-44b6_12dfb391/cache/44b6_12dfb391-frame-00050.learned-tiles.npz"
+        ],
+        "frame_manifests": [
+          "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-native-amp-44b6_12dfb391/cache/44b6_12dfb391-frame-00000.learned-tiles.npz.manifest.json",
+          "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-native-amp-44b6_12dfb391/cache/44b6_12dfb391-frame-00050.learned-tiles.npz.manifest.json"
+        ]
+      },
+      "precision_capture": "native-amp",
+      "run_id": "e1-pilot-native-amp-44b6_12dfb391",
+      "run_spec_expected_artifacts": [
+        "reports/campaign-workers/e1-pilot-native-amp-44b6_12dfb391/cache/cache-index.json",
+        "reports/campaign-workers/e1-pilot-native-amp-44b6_12dfb391/cache/44b6_12dfb391-frame-00000.learned-tiles.npz",
+        "reports/campaign-workers/e1-pilot-native-amp-44b6_12dfb391/cache/44b6_12dfb391-frame-00050.learned-tiles.npz",
+        "reports/campaign-workers/e1-pilot-native-amp-44b6_12dfb391/cache/44b6_12dfb391-frame-00000.learned-tiles.npz.manifest.json",
+        "reports/campaign-workers/e1-pilot-native-amp-44b6_12dfb391/cache/44b6_12dfb391-frame-00050.learned-tiles.npz.manifest.json",
+        "reports/campaign-workers/e1-pilot-native-amp-44b6_12dfb391/cache-reference.json",
+        "reports/campaign-workers/e1-pilot-native-amp-44b6_12dfb391/progress.json"
+      ]
+    },
+    {
+      "argv": [
+        "/workspace/biohub-cell-tracking/.venv/bin/python",
+        "/workspace/biohub-cell-tracking/scripts/cache_detection_diagnostics.py",
+        "--input-zarr",
+        "/workspace/biohub-cell-tracking/data/train/44b6_0113de3b.zarr",
+        "--dataset-id",
+        "44b6_0113de3b",
+        "--output-dir",
+        "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-full-fp32-44b6_0113de3b/cache",
+        "--model-file",
+        "/workspace/biohub-cell-tracking/work/kaggle-point-model-20260907/detector-weights.pt",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/scripts/cache_detection_diagnostics.py",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/src/biohub_ct/campaign/detection_diagnostics.py",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/src/biohub_ct/campaign/learned_logit_adapter.py",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/src/biohub_ct/pipelines/learned.py",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/src/biohub_ct/training/data.py",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/src/biohub_ct/training/model.py",
+        "--adapter",
+        "biohub_ct.campaign.learned_logit_adapter:create_adapter",
+        "--adapter-config-json",
+        "/workspace/biohub-cell-tracking/work/e1-diagnostic-configs/adapter-full-fp32.json",
+        "--transform-json",
+        "/workspace/biohub-cell-tracking/work/e1-diagnostic-configs/transform.json",
+        "--precision-json",
+        "/workspace/biohub-cell-tracking/work/e1-diagnostic-configs/precision-full-fp32.json",
+        "--tta-json",
+        "/workspace/biohub-cell-tracking/work/e1-diagnostic-configs/tta-disabled.json",
+        "--max-frames",
+        "2",
+        "--frame-index",
+        "0",
+        "--frame-index",
+        "50",
+        "--max-wall-seconds",
+        "120"
+      ],
+      "controller_environment": {
+        "BIOHUB_ATTEMPT_DIR": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-full-fp32-44b6_0113de3b",
+        "BIOHUB_FENCING_TOKEN": "CONTROLLER_MUST_BIND_NONNEGATIVE_INTEGER",
+        "BIOHUB_INTENT_ID": "CONTROLLER_MUST_BIND_APPROVED_INTENT",
+        "BIOHUB_PROGRESS_PATH": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-full-fp32-44b6_0113de3b/progress.json",
+        "BIOHUB_RUN_ID": "e1-pilot-full-fp32-44b6_0113de3b",
+        "BIOHUB_RUN_SPEC_SHA256": "CONTROLLER_MUST_BIND_64_LOWERCASE_HEX"
+      },
+      "dataset_id": "44b6_0113de3b",
+      "expected_outputs": {
+        "attempt_cache_reference": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-full-fp32-44b6_0113de3b/cache-reference.json",
+        "attempt_progress": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-full-fp32-44b6_0113de3b/progress.json",
+        "attempt_result": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-full-fp32-44b6_0113de3b/result.json",
+        "cache_index": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-full-fp32-44b6_0113de3b/cache/cache-index.json",
+        "frame_caches": [
+          "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-full-fp32-44b6_0113de3b/cache/44b6_0113de3b-frame-00000.learned-tiles.npz",
+          "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-full-fp32-44b6_0113de3b/cache/44b6_0113de3b-frame-00050.learned-tiles.npz"
+        ],
+        "frame_manifests": [
+          "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-full-fp32-44b6_0113de3b/cache/44b6_0113de3b-frame-00000.learned-tiles.npz.manifest.json",
+          "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-full-fp32-44b6_0113de3b/cache/44b6_0113de3b-frame-00050.learned-tiles.npz.manifest.json"
+        ]
+      },
+      "precision_capture": "full-fp32",
+      "run_id": "e1-pilot-full-fp32-44b6_0113de3b",
+      "run_spec_expected_artifacts": [
+        "reports/campaign-workers/e1-pilot-full-fp32-44b6_0113de3b/cache/cache-index.json",
+        "reports/campaign-workers/e1-pilot-full-fp32-44b6_0113de3b/cache/44b6_0113de3b-frame-00000.learned-tiles.npz",
+        "reports/campaign-workers/e1-pilot-full-fp32-44b6_0113de3b/cache/44b6_0113de3b-frame-00050.learned-tiles.npz",
+        "reports/campaign-workers/e1-pilot-full-fp32-44b6_0113de3b/cache/44b6_0113de3b-frame-00000.learned-tiles.npz.manifest.json",
+        "reports/campaign-workers/e1-pilot-full-fp32-44b6_0113de3b/cache/44b6_0113de3b-frame-00050.learned-tiles.npz.manifest.json",
+        "reports/campaign-workers/e1-pilot-full-fp32-44b6_0113de3b/cache-reference.json",
+        "reports/campaign-workers/e1-pilot-full-fp32-44b6_0113de3b/progress.json"
+      ]
+    },
+    {
+      "argv": [
+        "/workspace/biohub-cell-tracking/.venv/bin/python",
+        "/workspace/biohub-cell-tracking/scripts/cache_detection_diagnostics.py",
+        "--input-zarr",
+        "/workspace/biohub-cell-tracking/data/train/44b6_0b24845f.zarr",
+        "--dataset-id",
+        "44b6_0b24845f",
+        "--output-dir",
+        "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-full-fp32-44b6_0b24845f/cache",
+        "--model-file",
+        "/workspace/biohub-cell-tracking/work/kaggle-point-model-20260907/detector-weights.pt",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/scripts/cache_detection_diagnostics.py",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/src/biohub_ct/campaign/detection_diagnostics.py",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/src/biohub_ct/campaign/learned_logit_adapter.py",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/src/biohub_ct/pipelines/learned.py",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/src/biohub_ct/training/data.py",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/src/biohub_ct/training/model.py",
+        "--adapter",
+        "biohub_ct.campaign.learned_logit_adapter:create_adapter",
+        "--adapter-config-json",
+        "/workspace/biohub-cell-tracking/work/e1-diagnostic-configs/adapter-full-fp32.json",
+        "--transform-json",
+        "/workspace/biohub-cell-tracking/work/e1-diagnostic-configs/transform.json",
+        "--precision-json",
+        "/workspace/biohub-cell-tracking/work/e1-diagnostic-configs/precision-full-fp32.json",
+        "--tta-json",
+        "/workspace/biohub-cell-tracking/work/e1-diagnostic-configs/tta-disabled.json",
+        "--max-frames",
+        "2",
+        "--frame-index",
+        "0",
+        "--frame-index",
+        "50",
+        "--max-wall-seconds",
+        "120"
+      ],
+      "controller_environment": {
+        "BIOHUB_ATTEMPT_DIR": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-full-fp32-44b6_0b24845f",
+        "BIOHUB_FENCING_TOKEN": "CONTROLLER_MUST_BIND_NONNEGATIVE_INTEGER",
+        "BIOHUB_INTENT_ID": "CONTROLLER_MUST_BIND_APPROVED_INTENT",
+        "BIOHUB_PROGRESS_PATH": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-full-fp32-44b6_0b24845f/progress.json",
+        "BIOHUB_RUN_ID": "e1-pilot-full-fp32-44b6_0b24845f",
+        "BIOHUB_RUN_SPEC_SHA256": "CONTROLLER_MUST_BIND_64_LOWERCASE_HEX"
+      },
+      "dataset_id": "44b6_0b24845f",
+      "expected_outputs": {
+        "attempt_cache_reference": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-full-fp32-44b6_0b24845f/cache-reference.json",
+        "attempt_progress": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-full-fp32-44b6_0b24845f/progress.json",
+        "attempt_result": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-full-fp32-44b6_0b24845f/result.json",
+        "cache_index": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-full-fp32-44b6_0b24845f/cache/cache-index.json",
+        "frame_caches": [
+          "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-full-fp32-44b6_0b24845f/cache/44b6_0b24845f-frame-00000.learned-tiles.npz",
+          "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-full-fp32-44b6_0b24845f/cache/44b6_0b24845f-frame-00050.learned-tiles.npz"
+        ],
+        "frame_manifests": [
+          "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-full-fp32-44b6_0b24845f/cache/44b6_0b24845f-frame-00000.learned-tiles.npz.manifest.json",
+          "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-full-fp32-44b6_0b24845f/cache/44b6_0b24845f-frame-00050.learned-tiles.npz.manifest.json"
+        ]
+      },
+      "precision_capture": "full-fp32",
+      "run_id": "e1-pilot-full-fp32-44b6_0b24845f",
+      "run_spec_expected_artifacts": [
+        "reports/campaign-workers/e1-pilot-full-fp32-44b6_0b24845f/cache/cache-index.json",
+        "reports/campaign-workers/e1-pilot-full-fp32-44b6_0b24845f/cache/44b6_0b24845f-frame-00000.learned-tiles.npz",
+        "reports/campaign-workers/e1-pilot-full-fp32-44b6_0b24845f/cache/44b6_0b24845f-frame-00050.learned-tiles.npz",
+        "reports/campaign-workers/e1-pilot-full-fp32-44b6_0b24845f/cache/44b6_0b24845f-frame-00000.learned-tiles.npz.manifest.json",
+        "reports/campaign-workers/e1-pilot-full-fp32-44b6_0b24845f/cache/44b6_0b24845f-frame-00050.learned-tiles.npz.manifest.json",
+        "reports/campaign-workers/e1-pilot-full-fp32-44b6_0b24845f/cache-reference.json",
+        "reports/campaign-workers/e1-pilot-full-fp32-44b6_0b24845f/progress.json"
+      ]
+    },
+    {
+      "argv": [
+        "/workspace/biohub-cell-tracking/.venv/bin/python",
+        "/workspace/biohub-cell-tracking/scripts/cache_detection_diagnostics.py",
+        "--input-zarr",
+        "/workspace/biohub-cell-tracking/data/train/44b6_0db75fae.zarr",
+        "--dataset-id",
+        "44b6_0db75fae",
+        "--output-dir",
+        "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-full-fp32-44b6_0db75fae/cache",
+        "--model-file",
+        "/workspace/biohub-cell-tracking/work/kaggle-point-model-20260907/detector-weights.pt",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/scripts/cache_detection_diagnostics.py",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/src/biohub_ct/campaign/detection_diagnostics.py",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/src/biohub_ct/campaign/learned_logit_adapter.py",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/src/biohub_ct/pipelines/learned.py",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/src/biohub_ct/training/data.py",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/src/biohub_ct/training/model.py",
+        "--adapter",
+        "biohub_ct.campaign.learned_logit_adapter:create_adapter",
+        "--adapter-config-json",
+        "/workspace/biohub-cell-tracking/work/e1-diagnostic-configs/adapter-full-fp32.json",
+        "--transform-json",
+        "/workspace/biohub-cell-tracking/work/e1-diagnostic-configs/transform.json",
+        "--precision-json",
+        "/workspace/biohub-cell-tracking/work/e1-diagnostic-configs/precision-full-fp32.json",
+        "--tta-json",
+        "/workspace/biohub-cell-tracking/work/e1-diagnostic-configs/tta-disabled.json",
+        "--max-frames",
+        "2",
+        "--frame-index",
+        "0",
+        "--frame-index",
+        "50",
+        "--max-wall-seconds",
+        "120"
+      ],
+      "controller_environment": {
+        "BIOHUB_ATTEMPT_DIR": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-full-fp32-44b6_0db75fae",
+        "BIOHUB_FENCING_TOKEN": "CONTROLLER_MUST_BIND_NONNEGATIVE_INTEGER",
+        "BIOHUB_INTENT_ID": "CONTROLLER_MUST_BIND_APPROVED_INTENT",
+        "BIOHUB_PROGRESS_PATH": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-full-fp32-44b6_0db75fae/progress.json",
+        "BIOHUB_RUN_ID": "e1-pilot-full-fp32-44b6_0db75fae",
+        "BIOHUB_RUN_SPEC_SHA256": "CONTROLLER_MUST_BIND_64_LOWERCASE_HEX"
+      },
+      "dataset_id": "44b6_0db75fae",
+      "expected_outputs": {
+        "attempt_cache_reference": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-full-fp32-44b6_0db75fae/cache-reference.json",
+        "attempt_progress": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-full-fp32-44b6_0db75fae/progress.json",
+        "attempt_result": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-full-fp32-44b6_0db75fae/result.json",
+        "cache_index": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-full-fp32-44b6_0db75fae/cache/cache-index.json",
+        "frame_caches": [
+          "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-full-fp32-44b6_0db75fae/cache/44b6_0db75fae-frame-00000.learned-tiles.npz",
+          "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-full-fp32-44b6_0db75fae/cache/44b6_0db75fae-frame-00050.learned-tiles.npz"
+        ],
+        "frame_manifests": [
+          "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-full-fp32-44b6_0db75fae/cache/44b6_0db75fae-frame-00000.learned-tiles.npz.manifest.json",
+          "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-full-fp32-44b6_0db75fae/cache/44b6_0db75fae-frame-00050.learned-tiles.npz.manifest.json"
+        ]
+      },
+      "precision_capture": "full-fp32",
+      "run_id": "e1-pilot-full-fp32-44b6_0db75fae",
+      "run_spec_expected_artifacts": [
+        "reports/campaign-workers/e1-pilot-full-fp32-44b6_0db75fae/cache/cache-index.json",
+        "reports/campaign-workers/e1-pilot-full-fp32-44b6_0db75fae/cache/44b6_0db75fae-frame-00000.learned-tiles.npz",
+        "reports/campaign-workers/e1-pilot-full-fp32-44b6_0db75fae/cache/44b6_0db75fae-frame-00050.learned-tiles.npz",
+        "reports/campaign-workers/e1-pilot-full-fp32-44b6_0db75fae/cache/44b6_0db75fae-frame-00000.learned-tiles.npz.manifest.json",
+        "reports/campaign-workers/e1-pilot-full-fp32-44b6_0db75fae/cache/44b6_0db75fae-frame-00050.learned-tiles.npz.manifest.json",
+        "reports/campaign-workers/e1-pilot-full-fp32-44b6_0db75fae/cache-reference.json",
+        "reports/campaign-workers/e1-pilot-full-fp32-44b6_0db75fae/progress.json"
+      ]
+    },
+    {
+      "argv": [
+        "/workspace/biohub-cell-tracking/.venv/bin/python",
+        "/workspace/biohub-cell-tracking/scripts/cache_detection_diagnostics.py",
+        "--input-zarr",
+        "/workspace/biohub-cell-tracking/data/train/44b6_12dfb391.zarr",
+        "--dataset-id",
+        "44b6_12dfb391",
+        "--output-dir",
+        "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-full-fp32-44b6_12dfb391/cache",
+        "--model-file",
+        "/workspace/biohub-cell-tracking/work/kaggle-point-model-20260907/detector-weights.pt",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/scripts/cache_detection_diagnostics.py",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/src/biohub_ct/campaign/detection_diagnostics.py",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/src/biohub_ct/campaign/learned_logit_adapter.py",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/src/biohub_ct/pipelines/learned.py",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/src/biohub_ct/training/data.py",
+        "--source-file",
+        "/workspace/biohub-cell-tracking/src/biohub_ct/training/model.py",
+        "--adapter",
+        "biohub_ct.campaign.learned_logit_adapter:create_adapter",
+        "--adapter-config-json",
+        "/workspace/biohub-cell-tracking/work/e1-diagnostic-configs/adapter-full-fp32.json",
+        "--transform-json",
+        "/workspace/biohub-cell-tracking/work/e1-diagnostic-configs/transform.json",
+        "--precision-json",
+        "/workspace/biohub-cell-tracking/work/e1-diagnostic-configs/precision-full-fp32.json",
+        "--tta-json",
+        "/workspace/biohub-cell-tracking/work/e1-diagnostic-configs/tta-disabled.json",
+        "--max-frames",
+        "2",
+        "--frame-index",
+        "0",
+        "--frame-index",
+        "50",
+        "--max-wall-seconds",
+        "120"
+      ],
+      "controller_environment": {
+        "BIOHUB_ATTEMPT_DIR": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-full-fp32-44b6_12dfb391",
+        "BIOHUB_FENCING_TOKEN": "CONTROLLER_MUST_BIND_NONNEGATIVE_INTEGER",
+        "BIOHUB_INTENT_ID": "CONTROLLER_MUST_BIND_APPROVED_INTENT",
+        "BIOHUB_PROGRESS_PATH": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-full-fp32-44b6_12dfb391/progress.json",
+        "BIOHUB_RUN_ID": "e1-pilot-full-fp32-44b6_12dfb391",
+        "BIOHUB_RUN_SPEC_SHA256": "CONTROLLER_MUST_BIND_64_LOWERCASE_HEX"
+      },
+      "dataset_id": "44b6_12dfb391",
+      "expected_outputs": {
+        "attempt_cache_reference": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-full-fp32-44b6_12dfb391/cache-reference.json",
+        "attempt_progress": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-full-fp32-44b6_12dfb391/progress.json",
+        "attempt_result": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-full-fp32-44b6_12dfb391/result.json",
+        "cache_index": "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-full-fp32-44b6_12dfb391/cache/cache-index.json",
+        "frame_caches": [
+          "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-full-fp32-44b6_12dfb391/cache/44b6_12dfb391-frame-00000.learned-tiles.npz",
+          "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-full-fp32-44b6_12dfb391/cache/44b6_12dfb391-frame-00050.learned-tiles.npz"
+        ],
+        "frame_manifests": [
+          "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-full-fp32-44b6_12dfb391/cache/44b6_12dfb391-frame-00000.learned-tiles.npz.manifest.json",
+          "/workspace/biohub-cell-tracking/reports/campaign-workers/e1-pilot-full-fp32-44b6_12dfb391/cache/44b6_12dfb391-frame-00050.learned-tiles.npz.manifest.json"
+        ]
+      },
+      "precision_capture": "full-fp32",
+      "run_id": "e1-pilot-full-fp32-44b6_12dfb391",
+      "run_spec_expected_artifacts": [
+        "reports/campaign-workers/e1-pilot-full-fp32-44b6_12dfb391/cache/cache-index.json",
+        "reports/campaign-workers/e1-pilot-full-fp32-44b6_12dfb391/cache/44b6_12dfb391-frame-00000.learned-tiles.npz",
+        "reports/campaign-workers/e1-pilot-full-fp32-44b6_12dfb391/cache/44b6_12dfb391-frame-00050.learned-tiles.npz",
+        "reports/campaign-workers/e1-pilot-full-fp32-44b6_12dfb391/cache/44b6_12dfb391-frame-00000.learned-tiles.npz.manifest.json",
+        "reports/campaign-workers/e1-pilot-full-fp32-44b6_12dfb391/cache/44b6_12dfb391-frame-00050.learned-tiles.npz.manifest.json",
+        "reports/campaign-workers/e1-pilot-full-fp32-44b6_12dfb391/cache-reference.json",
+        "reports/campaign-workers/e1-pilot-full-fp32-44b6_12dfb391/progress.json"
+      ]
+    }
+  ]
+}

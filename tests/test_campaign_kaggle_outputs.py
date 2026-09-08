@@ -16,6 +16,7 @@ from biohub_ct.campaign.kaggle_outputs import (
     ExactOutputSpec,
     KaggleExactOutputClient,
     KaggleOutputError,
+    _verified_inventory,
 )
 
 DIGEST = "d" * 64
@@ -236,6 +237,77 @@ def test_local_rehash_rejects_helper_hash_lie_and_unreported_extra(tmp_path: Pat
 
     with pytest.raises(KaggleOutputError, match="failed exact-version proof"):
         client(ExtraRunner()).retrieve_and_verify_outputs(specification(), tmp_path / "extra")
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows extended-length path regression")
+def test_verified_inventory_reads_real_extended_length_output(tmp_path: Path) -> None:
+    content = b"complete long-path telemetry payload"
+    relative = "/".join(
+        [
+            "telemetry",
+            "stage-" + "a" * 80,
+            "dataset-" + "b" * 80,
+            "sample-" + "c" * 80,
+            "tensor.bin",
+        ]
+    )
+
+    class ExtendedPathRunner(OutputRunner):
+        def __call__(self, argv, **kwargs):
+            completed = super().__call__(argv, **kwargs)
+            helper = json.loads(completed.stdout)
+            output = Path(json.loads(kwargs["input"])["output_dir"])
+            extended_root = Path("\\\\?\\" + str(output.resolve()))
+            path = extended_root.joinpath(*relative.split("/"))
+            path.parent.mkdir(parents=True)
+            path.write_bytes(content)
+            helper["files"].append(
+                {"path": relative, "bytes": len(content), "sha256": sha(content)}
+            )
+            helper["total_bytes"] += len(content)
+            return subprocess.CompletedProcess(argv, 0, json.dumps(helper), "")
+
+    result = client(ExtendedPathRunner()).retrieve_and_verify_outputs(
+        specification(), tmp_path / "long-path-evidence"
+    )
+
+    row = next(item for item in result["proof"]["output_files"] if item["path"] == relative)
+    assert row == {
+        "path": relative,
+        "basename": "tensor.bin",
+        "bytes": len(content),
+        "sha256": sha(content),
+    }
+    ordinary_path = Path(result["download_directory"]).joinpath(*relative.split("/"))
+    assert len(str(ordinary_path)) > 260
+    assert Path("\\\\?\\" + os.path.abspath(ordinary_path)).read_bytes() == content
+
+
+def test_verified_inventory_rejects_parent_escape_before_file_access(tmp_path: Path) -> None:
+    output = tmp_path / "downloaded"
+    output.mkdir()
+    outside = tmp_path / "outside.bin"
+    outside.write_bytes(b"outside")
+    spec = specification(max_files=2)
+    marker_sha256 = sha(b"marker")
+    helper = {
+        "notebook_slug": spec.notebook_slug,
+        "notebook_version": spec.notebook_version,
+        "version_label": f"v{spec.notebook_version}",
+        "provider_request_fields": {
+            "user_name": "owner",
+            "kernel_slug": "exact-output",
+            "version_label": f"v{spec.notebook_version}",
+            "page_size": spec.page_size,
+        },
+        "marker_sha256": marker_sha256,
+        "helper_deadline_seconds": spec.max_runtime_seconds * 0.9,
+        "files": [{"path": "../outside.bin", "bytes": 7, "sha256": sha(b"outside")}],
+        "total_bytes": 7,
+    }
+
+    with pytest.raises(KaggleOutputError, match="duplicate/unsafe output path"):
+        _verified_inventory(output, helper, spec, marker_sha256)
 
 
 def test_helper_version_substitution_is_rejected(tmp_path: Path) -> None:

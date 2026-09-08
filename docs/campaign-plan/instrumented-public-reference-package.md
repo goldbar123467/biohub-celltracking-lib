@@ -2,18 +2,24 @@
 
 Date: 2026-09-08
 
-Current execution: the title-fixed R4 package was launched once as private,
-offline `clarkkitchen/biohub-e0-instrumented-reference/1` on September 8 at
-08:51 UTC. Its exact push receipt is CONFIRMED. At the latest root handoff it
-was still running after approximately 74 minutes; no terminal result or
-downloaded R4 output had been accepted. Telemetry validation, complete-output
-parity, runtime overhead, and quota settlement therefore remain pending. The
-6,480-second timeout reserves 1.98
-quota hours while protecting 26.40 hours. Admission followed the completed R3
-reproduction, whose 241,400-row CSV is byte-identical to the upstream artifact.
-R3's terminal reconciliation settled at the 1.41-hour account-display change;
-see the [full R3 rehearsal report](../experiments/e0-kaggle-full-rehearsal-2026-09-08.md).
-No model-quality admission follows from either launch or the R3 reproduction.
+Current execution: the title-fixed R4 package ran once as private, offline
+`clarkkitchen/biohub-e0-instrumented-reference/1`. Kaggle reported the pinned
+version complete after 5,706.2 seconds with 465 output files. The recovered
+exact-version proof and independent validator accepted the frozen release
+identity and structural contracts. Its 241,400-row CSV is byte-identical to R3
+and the upstream reference. All 12 detector-coordinate hashes and counts and all
+12 logical GEFF graphs match R3 exactly; the R4 raw coordinate artifacts were
+independently rehashed and decoded.
+
+The independent telemetry verdict is nevertheless `FAIL`. The frozen notebook
+serialized `submission.csv` through `csv.DictWriter`, outside the installed
+`pandas.DataFrame.to_csv` timer, so required serialization timing is unavailable.
+Canonical R4 state is `FAILED`; its 1.98-hour reservation settled at the
+1.58-hour account-display debit, leaving 26.83 hours and preserving the
+26.40-hour reserve. A follow-up runtime hook is not yet rehearsed and does not
+alter the frozen R4 package or its failed historical result. See the
+[R4 telemetry differential report](../experiments/e0-r4-telemetry-differential-2026-09-08.md).
+No model-quality or submission admission follows from this rehearsal.
 
 `scripts/verify_e0_telemetry_outputs.py` independently checks downloaded R4
 cell order and source hashes, callback cleanup, outer manifest binding,
@@ -21,8 +27,8 @@ resource samples and support-stage records. It resolves recorded Kaggle paths
 inside the downloaded tree without rewriting the original evidence. Probe
 availability is reported explicitly. Its 34-test telemetry/integration suite
 passed, including an actual-harvester fixture; the integrated native Windows
-suite passed 392 tests with 62 optional-dependency/platform skips. These local
-checks do not substitute for the pending full Kaggle artifact check.
+suite later passed 409 tests with 61 optional-dependency/platform skips. The
+actual full-run verifier still failed on the missing serialization measurement.
 
 ## Boundary
 
@@ -179,9 +185,13 @@ overrides remain unavailable. The real R4 CLI preflight returned
 
 Root verification passed 14 instrumented-builder tests and 25 operator tests.
 An independent combined builder/base-builder review passed 23 tests with one
-existing platform skip. R3 subsequently completed and settled. R4 was then
-launched once and remained running at the latest checkpoint. Its terminal
-receipt, downloaded-output differential, telemetry verification, runtime
-overhead, resource admission, and quota settlement remain pending; the bounded
-eight-frame support-path parity result above is not a substitute for those
-full-run checks.
+existing platform skip. R3 subsequently completed and settled. The later full
+R4 rehearsal completed at the provider, reproduced the R3 CSV, all 12
+detector-coordinate hashes and counts, and all 12 logical GEFF graphs exactly.
+The R4 raw coordinate artifacts were independently rehashed and decoded. The
+run then closed canonically as `FAILED` because the required
+submission-serialization timing was not observed. Its quota
+reservation is settled. One R3/R4 pair does not isolate instrumentation
+overhead, and the failed telemetry contract does not grant resource, quality or
+submission admission. The full evidence and limits are in the
+[R4 telemetry differential report](../experiments/e0-r4-telemetry-differential-2026-09-08.md).

@@ -14,23 +14,32 @@ display-derived 1.41-hour debit with no retained reservation. This operational
 completion does not cure the validator's missing quality and resource evidence,
 and it does not authorize a submission or promote E0.
 
-After R3 reconciliation and a fresh zero-active-events check, one bounded R4
-telemetry differential was admitted and pushed exactly once. Launch is
-**CONFIRMED** as `clarkkitchen/biohub-e0-instrumented-reference/1`; terminal
-execution, output identity, telemetry completeness, runtime overhead and quota
-settlement are still unverified. Its 6,480-second timeout reserves 1.980 quota
-hours while protecting 26.40 hours for two final attempts from the fresh 28.41-hour
-balance. Current focused suites pass 47 release/output tests and 34 telemetry
-tests. E1 advancement remains rejected, conditional E2-E5 work remains
+The full R4 telemetry differential has now reached provider `COMPLETE` at
+5,706.2 seconds, with 465 exact-version output files independently rehashed.
+The CSV is byte-identical to R3, and all 12 detector-coordinate identities and
+logical GEFF graphs match exactly. The required telemetry check nevertheless
+failed because the frozen timer watched pandas writes while the actual notebook
+uses `csv.DictWriter` for submission serialization. The strict failure was
+preserved; the canonical run is **FAILED**, with the successful provider state
+recorded separately. Its 1.98-hour reservation settled at the 1.58-hour account
+display change. Remaining quota is 26.83 hours, including the intact 26.40-hour
+protected reserve. See the [R4 differential report](../experiments/e0-r4-telemetry-differential-2026-09-08.md).
+
+The future DictWriter hook and Windows long-path inventory fix are implemented
+and locally tested. They do not change the frozen R4 result or prove a corrected
+full rehearsal. E1 advancement remains rejected; conditional E2-E5 work remains
 unadmitted, and routine campaign authorization and scheduler activation remain
 open.
 
-The integrated native Windows suite at this checkpoint passed 392 tests with
-62 skips in 12.62 seconds. Five diagnostic tests initially failed because the
-minimal environment omits optional SciPy; each now gates only its actual SciPy
-dependency, leaving the other 13 tests in that module active. All 18 module
-tests also passed with real SciPy in an isolated environment. This does not
-replace the separately recorded real CUDA/optional-dependency evidence.
+The corrected full-suite evidence is recorded in the
+[campaign suite verification report](../experiments/campaign-suite-verification-2026-09-08.md).
+A root-clean native Windows run provisioned independently through `uv` passed
+405 tests with 61 explicit optional-dependency/platform skips in 13.20 seconds.
+The synchronized Vast Linux run passed 469 tests with 21 skips in 38.30 seconds;
+its downloaded artifacts were independently rehashed and its canonical run state
+was finalized `COMPLETE`. These suites verify software and campaign contracts on
+both platforms. They do not replace the separately recorded real CUDA evidence
+or establish model quality.
 
 ## Scope and precedence
 
@@ -75,8 +84,8 @@ Passing isolated tests does not close end-to-end operations or model-quality row
 | H7 | Activation steps 1-6; exactly one schedule; first receipt and next run | Verified access + read-only and mutation-enabled iterations + actual scheduler receipt | Read-only inspection found existing heartbeat `biohub-long-run-hourly-check` with status `PAUSED`; `helper-activation.md` binds its replacement prompt to the canonical store and verified entrypoint. No automation was edited or activated, and no scheduled first receipt or next-run time exists; recurring and routine-action authorization remain false and the whole-campaign ceiling remains unresolved |
 | G1 | GPU_OPERATIONS live inventory, quota/rules, real CUDA op | Timestamped provider, account, storage and CUDA receipts | `reports/campaign-inventory-20260908.json`, `reports/campaign-kaggle-inventory-20260908.json` verified |
 | G2 | Independent provider/quota ledgers; finite worst-case reservation; no double debit | Transactional reservation/settlement tests and live observations | Exact-Decimal ledger, concurrency, protected-reserve, worst-case-plus-grace and atomic terminal-settlement tests pass; one live instance-hour reservation settled from verified elapsed time. USD completion retains its reservation until authenticated actual billing, multiple reservations require explicit allocation, and the whole-campaign ceiling remains unresolved |
-| G3 | Two release attempts protected, measured quota debit, fallback reserve policy | Rule/runtime evidence, conservative admission calculation, actual debit reconciliation | R3 started from 29.82h remaining and 0.18h used, protected 26.40h and reserved 2.75h using the documented 1.10 upper bound. The terminal account display showed 28.41h remaining and 1.59h used; the 1.41h display-derived debit settled the R3 reservation. Fresh R4 admission reserves 1.980h for a 6,480-second timeout and leaves 26.430h after the reservation while protecting 26.40h. R4's actual debit remains pending. |
-| G4 | Profile/pilot before expansion; concurrency at most one per platform | Immutable admitted run specs and active-process/provider receipts | The bounded Vast profiles and diagnostics completed through admitted intents. R3 reached COMPLETE and zero active GPU events were verified afterward. One R4 telemetry differential was then pushed exactly once as `clarkkitchen/biohub-e0-instrumented-reference/1`; launch is CONFIRMED, but terminal status and outputs remain pending. No new model fit was launched. |
+| G3 | Two release attempts protected, measured quota debit, fallback reserve policy | Rule/runtime evidence, conservative admission calculation, actual debit reconciliation | R3 started from 29.82h remaining and 0.18h used, protected 26.40h and reserved 2.75h using the documented 1.10 upper bound. The terminal account display showed 28.41h remaining and 1.59h used; the 1.41h display-derived debit settled the R3 reservation. Fresh R4 admission reserves 1.980h for a 6,480-second timeout and leaves 26.430h after the reservation while protecting 26.40h. R4 subsequently settled at a 1.58h display-derived debit, leaving 26.83h remaining, 26.40h protected, and no R4 reservation. |
+| G4 | Profile/pilot before expansion; concurrency at most one per platform | Immutable admitted run specs and active-process/provider receipts | The bounded Vast profiles and diagnostics completed through admitted intents. R3 reached COMPLETE and zero active GPU events were verified afterward. One R4 telemetry differential was then pushed exactly once as `clarkkitchen/biohub-e0-instrumented-reference/1`; provider COMPLETE and all 465 downloaded file hashes are verified. Canonical state is FAILED because serialization telemetry is missing; the quota reservation is settled. No new model fit was launched. |
 | G5 | Stop/error/OOM policy and ownership; billing distinct from process | Deadline tests plus worker error tests, billing readback, bounded retry history | Ownership, supervisor-death backstop, work-unit finalization, stale PID and deadline tests pass. Historical AMP overflow recovery remains separately documented. No new application OOM/retry was exercised in this pilot; provider billing is separate. |
 | G6 | Cache identity includes all numerical/input fields; float32 diagnostic logits | Corruption/invalidation tests + actual cache/reload comparisons | All 16 actual CUDA payloads passed independent model/source/config/frame/precision/transform/TTA identity and strict reload. Replayed native probabilities and frozen control node coordinates matched the contemporaneous production path exactly on all eight frames. |
 | G7 | Complete resume state, atomic checkpoints, durable backup/readback | Current trainer resume suite + actual checkpoint hash at both destinations | The immutable R7 full real-dependency suite includes trainer interruption/resume checks. Frozen model and captured source/artifact hashes were independently verified on both controller and Vast. No new training checkpoint was produced by E1. |
@@ -91,7 +100,7 @@ Passing isolated tests does not close end-to-end operations or model-quality row
 | E0.1 | Exact score-associated notebook and input versions, hashes/licenses | Pinned source/weights/dependencies + live version/score receipt | Root inspected pinned notebook V1/scriptVersionId 347821442, downloaded archives and local artifact lock; no reproduction score claimed |
 | E0.2 | Sequential source audit, transforms, TTA, normalization, solver, overwrites | Effective configuration and source-location audit | Root sequential audit identified effective settings, stale report/print fields and heuristic division proxy; documented in public-reference-e0.md |
 | E0.3 | Verify reported constants against exact code, do not substitute | Assertions/source audit of actual selected version | Exact source constants and all 12 unchanged public cells verified; stale summary values explicitly rejected |
-| E0.4 | Representative compatibility/timing and unchanged-algorithm private offline package | Actual run + documented adaptation diff | R3 and the additive R4 candidate retain all 12 original cells; the candidate has two byte-identical builds and 18 compiled cells. R3 completed the full private Kaggle notebook in 5,076.3 provider seconds, and its manifest reports 5,057.298734274 seconds. The earlier eight-frame GPU support differential verifies both models, extraction, association, ILP and GEFF on identical input. R4 launch is confirmed, but full instrumented output parity and telemetry remain pending. |
+| E0.4 | Representative compatibility/timing and unchanged-algorithm private offline package | Actual run + documented adaptation diff | R3 and the additive R4 candidate retain all 12 original cells; the candidate has two byte-identical builds and 18 compiled cells. R3 completed the full private Kaggle notebook in 5,076.3 provider seconds, and its manifest reports 5,057.298734274 seconds. The earlier eight-frame GPU support differential verifies both models, extraction, association, ILP and GEFF on identical input. R4 completed with exact CSV, 12-dataset coordinate-identity and logical GEFF parity. The telemetry acceptance contract failed on missing serialization timing; a future hook fix has local tests but no corrected full rehearsal. |
 | E0.5 | Full visible coverage/bounds/graph/runtime/manifest, upstream comparison | Final downloaded CSV validated independently; canonical graph parity on identical inputs | R3 exact-version output was downloaded and independently validated: 241,400 rows across all four visible datasets, valid bounds and graph constraints, and exact identity with the pinned upstream CSV, including byte equality. The validator still blocks quality and resource admission because the upstream manifest omits the required evidence fields. |
 | E0.6 | Eligible exact-version submission via helper with overlap label | Operational approval, persisted intent, numeric Kaggle receipt and eventual score | Outstanding; not authorized by template text alone |
 | E1.1 | Reproduce frozen control and all three precision variants | Same-frame logits/probabilities/assigned nodes with fixed transforms | COMPLETE for the fixed diagnostic panel: eight cache workers, 16 payloads, all three precision arms, CUDA probability parity and frozen-control extraction parity passed. This is reused diagnostic evidence, not held-out performance. |
@@ -114,7 +123,7 @@ Passing isolated tests does not close end-to-end operations or model-quality row
 | R6 | Public/validation/final pointers distinct; actual final-selection confirmation | Completed comparable scores and actual Kaggle selection receipt | No new final selection; outstanding |
 | R7 | Final freeze/recovery time and stop at expiry/deadline | Admission/reviewer tests and saved deadline policy | Per-run deadline/expiration and protected-release-reserve admission are implemented and tested. A complete routine campaign ceiling, schedule and final freeze/recovery allocation are unresolved. |
 | ER1 | EVIDENCE_REGISTER distinguish source types and historical limits | Source provenance in every report; no mock numbers used as real evidence | Historical audit read; source pack preserved |
-| ER2 | Resolve all seven highest-priority unknowns | Current state/receipt, version/membership, split history, runtime, measured ablations and objective audit | Source/version, canonical runtime state, E1 ablations, and R3 full runtime/display-derived debit are documented. Unresolved: E0 training/evaluation overlap, complete temporal quality and resource telemetry, R4 terminal differential evidence, routine funding/activation and final-release evidence. The audit is not complete. |
+| ER2 | Resolve all seven highest-priority unknowns | Current state/receipt, version/membership, split history, runtime, measured ablations and objective audit | Source/version, canonical runtime state, E1 ablations, and R3 full runtime/display-derived debit are documented. Unresolved: E0 training/evaluation overlap, complete temporal quality and resource telemetry, corrected full R4 serialization telemetry, routine funding/activation and final-release evidence. The audit is not complete. |
 
 ## Executed verification at this checkpoint
 
@@ -434,14 +443,34 @@ The subsequent R4 telemetry differential used fresh account evidence of 28.41
 remaining hours and zero active GPU jobs. Its immutable admission reserves 1.980
 hours for a 6,480-second timeout, leaves 26.430 hours outside that reservation,
 and continues to protect 26.40 hours for two final attempts. Exactly one push was
-confirmed as `clarkkitchen/biohub-e0-instrumented-reference/1`. No terminal
+confirmed as `clarkkitchen/biohub-e0-instrumented-reference/1`. At this historical checkpoint, no terminal
 status, exact-version output, R3/R4 differential, telemetry validation, runtime
-overhead or post-run quota settlement has yet been recorded for R4. The current
+overhead or post-run quota settlement had yet been recorded for R4. The then-current
 47-test release/output suite and 34-test telemetry suite pass, but tests cannot
 substitute for those provider artifacts.
 
-R4 therefore remains an active operational verification, and its telemetry
+R4 therefore remained an active operational verification at that checkpoint, and its telemetry
 cannot add the instrumented candidate to the release allowlist by itself.
 Quality promotion, complete temporal evidence, routine campaign limits,
 routine-action authority, schedule activation and final submission evidence
 remain unresolved. The full plan remains **not complete**.
+
+## Verified R4 terminal checkpoint at 2026-09-08 10:54 UTC
+
+The [completed differential audit](../experiments/e0-r4-telemetry-differential-2026-09-08.md)
+supersedes the R4 pending statements in the preceding historical checkpoint.
+Provider execution completed in 5,706.2 seconds; all 465 downloaded files were
+rehashed. CSV bytes, 12 detector-coordinate identities, and 12 logical GEFF
+graphs match R3 exactly. The strict telemetry acceptance failed on missing
+submission serialization timing. This failure is preserved as canonical
+`FAILED`, alongside provider `COMPLETE`. The observed 1.58-hour debit is settled,
+with zero outstanding reservation and 26.83 hours remaining, of which 26.40 are
+protected.
+
+The future DictWriter timer and Windows long-path fix passed local verification:
+409 tests with 61 explicit skips in the independently provisioned native Windows
+full suite; 73 tests with one Windows-only skip in the focused Linux WSL suite.
+The corrected full Kaggle rehearsal remains unexecuted. Routine authorization,
+the campaign ceiling, scheduler activation, complete model-quality evidence and
+final release/submission gates remain unresolved. These are open requirements,
+not completed deliverables.

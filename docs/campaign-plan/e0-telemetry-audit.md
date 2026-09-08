@@ -119,9 +119,18 @@ The design below was subsequently implemented as the title-fixed R4 package.
 Its bounded eight-frame real-model differential passed for exact detector
 candidates, solved graphs, and logical GEFF content; see the
 [model/graph parity report](../experiments/e0-model-graph-parity-2026-09-08.md).
-That result covers only the bounded support path. The full private R4 rehearsal
-was still running at the latest checkpoint, so no downloaded R4 telemetry,
-complete-output parity, runtime-overhead, or resource-admission result is claimed.
+That bounded result covers only the support path. The later full private R4
+rehearsal completed at Kaggle after 5,706.2 seconds with 465 files. Independent
+validation accepted the frozen release structure. Its 241,400-row CSV, all 12
+detector-coordinate hashes and counts, and all 12 logical GEFF graphs matched
+R3 exactly; the R4 raw coordinate artifacts were independently rehashed and
+decoded. The telemetry verdict remained `FAIL` because `csv.DictWriter`
+serialization was outside the installed pandas timer. Canonical R4 settled as
+`FAILED` at a 1.58-hour account-display debit, leaving 26.83 hours and preserving
+the protected 26.40-hour reserve. A follow-up hook is unrehearsed and cannot
+retroactively change the frozen evidence. One paired run does not isolate
+instrumentation overhead or grant resource admission. See the
+[R4 telemetry differential report](../experiments/e0-r4-telemetry-differential-2026-09-08.md).
 
 ### Outer notebook instrumentation
 

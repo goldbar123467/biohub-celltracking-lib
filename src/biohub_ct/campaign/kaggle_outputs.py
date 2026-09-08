@@ -63,6 +63,19 @@ def _sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _filesystem_path(path: Path) -> Path:
+    """Use an extended absolute path for Windows filesystem access."""
+
+    if os.name != "nt":
+        return path
+    value = os.path.abspath(os.fspath(path))
+    if value.startswith("\\\\?\\"):
+        return Path(value)
+    if value.startswith("\\\\"):
+        return Path("\\\\?\\UNC\\" + value[2:])
+    return Path("\\\\?\\" + value)
+
+
 def _write_json(path: Path, value: Mapping[str, object]) -> None:
     data = (json.dumps(value, indent=2, sort_keys=True, allow_nan=False) + "\n").encode()
     temporary = path.with_name(f".{path.name}.{secrets.token_hex(8)}.tmp")
@@ -505,6 +518,11 @@ def _verified_inventory(
     rows = helper.get("files")
     if not isinstance(rows, list) or not rows or len(rows) > spec.max_files:
         raise KaggleOutputError("helper returned an invalid file inventory")
+    filesystem_root = _filesystem_path(output_dir)
+    try:
+        resolved_root = filesystem_root.resolve(strict=True)
+    except OSError as exc:
+        raise KaggleOutputError("download destination is unavailable") from exc
     verified: list[dict[str, object]] = []
     seen: set[str] = set()
     total = 0
@@ -533,9 +551,9 @@ def _verified_inventory(
             or not _SHA256.fullmatch(digest)
         ):
             raise KaggleOutputError("helper returned invalid output bounds/hash")
-        path = output_dir.joinpath(*parts)
+        path = filesystem_root.joinpath(*parts)
         try:
-            inside = path.resolve(strict=True).is_relative_to(output_dir.resolve(strict=True))
+            inside = path.resolve(strict=True).is_relative_to(resolved_root)
         except OSError:
             inside = False
         if not inside:
@@ -556,10 +574,11 @@ def _verified_inventory(
         )
     if total > spec.max_total_bytes or helper.get("total_bytes") != total:
         raise KaggleOutputError("helper total byte count is invalid")
+    entries = list(filesystem_root.rglob("*"))
     actual = {
-        path.relative_to(output_dir).as_posix() for path in output_dir.rglob("*") if path.is_file()
+        path.relative_to(filesystem_root).as_posix() for path in entries if path.is_file()
     }
-    if any(path.is_symlink() for path in output_dir.rglob("*")) or actual != seen:
+    if any(path.is_symlink() for path in entries) or actual != seen:
         raise KaggleOutputError("download directory contains unverified entries")
     return sorted(verified, key=lambda row: str(row["path"]))
 

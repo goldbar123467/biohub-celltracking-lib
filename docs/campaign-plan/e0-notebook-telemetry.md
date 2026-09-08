@@ -10,7 +10,9 @@ The module covers:
 
 - exact public-cell source identity and order at IPython pre/post boundaries;
 - elapsed time for the 12 public cells and explicitly allowed integrity/validation cells;
-- a narrowly scoped timer around pandas writes to the target `submission.csv` when pandas is already loaded at a cell boundary;
+- a narrowly scoped timer around writes to the target `submission.csv`; frozen
+  R4 observed `pandas.DataFrame.to_csv`, while the current unrehearsed source
+  also observes `csv.DictWriter`;
 - low-rate process-tree host RSS and per-GPU used/total memory samples;
 - strict retention, detector-coordinate, run-stat, and final-submission harvest;
 - a self-contained standard-library runtime that a packager can embed in a prepended cell;
@@ -23,11 +25,17 @@ sampler cannot attribute asynchronous GPU work to model, peak extraction, pair
 scoring, ILP, or GEFF serialization.
 
 The later bounded eight-frame real-model differential passed for exact detector
-candidates, solved graphs, and logical GEFF content. The full private R4 run was
-still running at the latest checkpoint. No downloaded R4 telemetry,
-complete-output parity, runtime-overhead, or resource-admission result is claimed
-until that run reaches a terminal state and its exact output passes independent
-validation.
+candidates, solved graphs, and logical GEFF content. The full private R4 run
+later completed at Kaggle after 5,706.2 seconds with 465 files. Independent
+exact-version validation accepted the frozen release structure. The 241,400-row
+CSV, all 12 detector-coordinate hashes and counts, and all 12 logical GEFF
+graphs matched R3 exactly; the R4 raw coordinate artifacts were independently
+rehashed and decoded. The outer telemetry contract still failed because
+the frozen notebook used `csv.DictWriter` for `submission.csv`, outside the
+installed pandas timer, leaving serialization timing unavailable. Canonical R4
+is therefore settled `FAILED`, not telemetry-accepted. A follow-up hook remains
+unrehearsed and cannot revise the frozen run. See the
+[R4 telemetry differential report](../experiments/e0-r4-telemetry-differential-2026-09-08.md).
 
 ## API
 

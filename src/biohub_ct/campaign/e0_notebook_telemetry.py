@@ -643,6 +643,8 @@ class NotebookTelemetryTracker:
     )
     _dataframe_type: type | None = field(init=False, default=None)
     _original_to_csv: Callable[..., object] | None = field(init=False, default=None)
+    _original_csv_dict_writer: type | None = field(init=False, default=None)
+    _timed_csv_dict_writer: type | None = field(init=False, default=None)
     _started: bool = field(init=False, default=False)
     _finalized: bool = field(init=False, default=False)
 
@@ -685,9 +687,12 @@ class NotebookTelemetryTracker:
         self._started = True
 
     def _atexit_cleanup(self) -> None:
-        sampler = self._sampler
-        if sampler is not None and not self._finalized:
-            sampler.stop()
+        try:
+            sampler = self._sampler
+            if sampler is not None and not self._finalized:
+                sampler.stop()
+        finally:
+            self._restore_to_csv_wrapper()
 
     def pre_run_cell(self, info: object) -> None:
         if self._active is not None:
@@ -806,74 +811,243 @@ class NotebookTelemetryTracker:
     def _unregister_callbacks(self) -> None:
         ipython = self._ipython
         events = getattr(ipython, "events", None) if ipython is not None else None
-        if events is not None and callable(getattr(events, "unregister", None)):
-            for event, callback in (
-                ("pre_run_cell", self.pre_run_cell),
-                ("post_run_cell", self.post_run_cell),
-            ):
-                try:
-                    events.unregister(event, callback)
-                except (KeyError, ValueError):
-                    pass
-        # The final auxiliary cell is active when it calls finalize. It is not
-        # a completed public cell and is deliberately excluded from cell time.
-        self._active = None
-        self._restore_to_csv_wrapper()
+        try:
+            if events is not None and callable(getattr(events, "unregister", None)):
+                for event, callback in (
+                    ("pre_run_cell", self.pre_run_cell),
+                    ("post_run_cell", self.post_run_cell),
+                ):
+                    try:
+                        events.unregister(event, callback)
+                    except (KeyError, ValueError):
+                        pass
+        finally:
+            # The final auxiliary cell is active when it calls finalize. It is not
+            # a completed public cell and is deliberately excluded from cell time.
+            self._active = None
+            self._restore_to_csv_wrapper()
 
     def _install_to_csv_wrapper_if_available(self) -> None:
-        """Time only writes to the final submission path, preserving pandas behavior."""
+        """Time only writes to the final submission path, preserving writer behavior."""
 
-        if self._original_to_csv is not None:
-            return
-        pandas = sys.modules.get("pandas")
-        dataframe_type = getattr(pandas, "DataFrame", None) if pandas is not None else None
-        original = getattr(dataframe_type, "to_csv", None)
-        if not isinstance(dataframe_type, type) or not callable(original):
-            return
         target = (Path(self.config.output_dir) / self.config.submission_filename).resolve(
             strict=False
         )
         tracker = self
 
-        def timed_to_csv(frame: object, *args: object, **kwargs: object) -> object:
-            destination = args[0] if args else kwargs.get("path_or_buf")
-            timed = False
-            if isinstance(destination, (str, os.PathLike)):
-                try:
-                    timed = Path(destination).resolve(strict=False) == target
-                except (OSError, TypeError, ValueError):
-                    timed = False
-            started = time.monotonic()
-            started_at = _utc_now()
-            error_type: str | None = None
-            try:
-                return original(frame, *args, **kwargs)
-            except BaseException as exc:
-                error_type = type(exc).__name__
-                raise
-            finally:
-                if timed:
-                    tracker._serialization_records.append(
-                        {
-                            "stage": "submission_csv_serialization",
-                            "status": "PASS" if error_type is None else "ERROR",
-                            "error_type": error_type,
-                            "started_at_utc": started_at,
-                            "ended_at_utc": _utc_now(),
-                            "elapsed_seconds": time.monotonic() - started,
-                            "path": str(target),
-                        }
-                    )
+        if self._original_to_csv is None:
+            pandas = sys.modules.get("pandas")
+            dataframe_type = (
+                getattr(pandas, "DataFrame", None) if pandas is not None else None
+            )
+            original = getattr(dataframe_type, "to_csv", None)
+            if isinstance(dataframe_type, type) and callable(original):
 
-        type.__setattr__(dataframe_type, "to_csv", timed_to_csv)
-        self._dataframe_type = dataframe_type
-        self._original_to_csv = original
+                def timed_to_csv(
+                    frame: object, *args: object, **kwargs: object
+                ) -> object:
+                    destination = args[0] if args else kwargs.get("path_or_buf")
+                    timed = False
+                    if isinstance(destination, (str, os.PathLike)):
+                        try:
+                            timed = Path(destination).resolve(strict=False) == target
+                        except (OSError, TypeError, ValueError):
+                            timed = False
+                    started = time.monotonic()
+                    started_at = _utc_now()
+                    error_type: str | None = None
+                    try:
+                        return original(frame, *args, **kwargs)
+                    except BaseException as exc:
+                        error_type = type(exc).__name__
+                        raise
+                    finally:
+                        if timed:
+                            tracker._serialization_records.append(
+                                {
+                                    "stage": "submission_csv_serialization",
+                                    "implementation": "pandas.DataFrame.to_csv",
+                                    "status": (
+                                        "PASS" if error_type is None else "ERROR"
+                                    ),
+                                    "error_type": error_type,
+                                    "started_at_utc": started_at,
+                                    "ended_at_utc": _utc_now(),
+                                    "elapsed_seconds": time.monotonic() - started,
+                                    "path": str(target),
+                                    "scope": (
+                                        "target to_csv call; excludes argument "
+                                        "construction and graph computation"
+                                    ),
+                                }
+                            )
+
+                type.__setattr__(dataframe_type, "to_csv", timed_to_csv)
+                self._dataframe_type = dataframe_type
+                self._original_to_csv = original
+
+        if self._original_csv_dict_writer is not None:
+            return
+        original_dict_writer = csv.DictWriter
+        if not isinstance(original_dict_writer, type):
+            return
+
+        def is_target_stream(stream: object) -> bool:
+            try:
+                name = getattr(stream, "name", None)
+                return isinstance(name, (str, os.PathLike)) and (
+                    Path(name).resolve(strict=False) == target
+                )
+            except Exception:  # noqa: BLE001 - opaque stream metadata is untrusted
+                # Target recognition is additive telemetry. An unusual ``name``
+                # implementation must not change csv.DictWriter behavior. Process
+                # interrupts still propagate because they do not inherit Exception.
+                return False
+
+        class TimedDictWriter(original_dict_writer):  # type: ignore[misc, valid-type]
+            def __init__(
+                self,
+                f: object,
+                fieldnames: object,
+                restval: object = "",
+                extrasaction: str = "raise",
+                dialect: str = "excel",
+                *args: object,
+                **kwds: object,
+            ) -> None:
+                super().__init__(
+                    f,
+                    fieldnames,
+                    restval,
+                    extrasaction,
+                    dialect,
+                    *args,
+                    **kwds,
+                )
+                self._e0_timed = is_target_stream(f)
+                self._e0_timing_depth = 0
+                self._e0_record: dict[str, object] | None = None
+
+            def _e0_time_write(
+                self,
+                method: str,
+                rows: object,
+                invoke: Callable[[object], object],
+            ) -> object:
+                if not self._e0_timed or self._e0_timing_depth:
+                    return invoke(rows)
+
+                row_count = 1
+                measured_rows = rows
+                if method == "writerows":
+                    row_count = 0
+
+                    def counted_rows() -> object:
+                        nonlocal row_count
+                        for row in rows:  # type: ignore[union-attr]
+                            row_count += 1
+                            yield row
+
+                    measured_rows = counted_rows()
+
+                started_at = _utc_now() if self._e0_record is None else None
+                started = time.monotonic()
+                error_type: str | None = None
+                self._e0_timing_depth += 1
+                try:
+                    return invoke(measured_rows)
+                except BaseException as exc:
+                    error_type = type(exc).__name__
+                    raise
+                finally:
+                    self._e0_timing_depth -= 1
+                    ended = time.monotonic()
+                    elapsed = ended - started
+                    record = self._e0_record
+                    if record is None:
+                        assert started_at is not None
+                        record = {
+                            "stage": "submission_csv_serialization",
+                            "implementation": "csv.DictWriter",
+                            "status": "PASS",
+                            "error_type": None,
+                            "started_at_utc": started_at,
+                            "elapsed_seconds": 0.0,
+                            "last_write_monotonic_seconds": ended,
+                            "path": str(target),
+                            "scope": (
+                                "target DictWriter serialization/write calls only; "
+                                "excludes argument construction, graph computation "
+                                "performed between calls, and final stream close/fsync; "
+                                "writerows includes lazy iterable production within its call"
+                            ),
+                            "measurement_limit": (
+                                "elapsed sum excludes telemetry counter bookkeeping; "
+                                "one UTC timestamp is captured at the first write"
+                            ),
+                            "call_count": 0,
+                            "row_count": 0,
+                            "count_semantics": (
+                                "top-level DictWriter calls and rows attempted; a "
+                                "writeheader row is counted once and writerows counts "
+                                "each row yielded, including a row that then fails"
+                            ),
+                            "calls_by_method": {
+                                "writeheader": 0,
+                                "writerow": 0,
+                                "writerows": 0,
+                            },
+                        }
+                        self._e0_record = record
+                        tracker._serialization_records.append(record)
+                    record["elapsed_seconds"] = float(record["elapsed_seconds"]) + elapsed
+                    record["last_write_monotonic_seconds"] = ended
+                    record["call_count"] = int(record["call_count"]) + 1
+                    record["row_count"] = int(record["row_count"]) + row_count
+                    calls = record["calls_by_method"]
+                    assert isinstance(calls, dict)
+                    calls[method] = int(calls[method]) + 1
+                    if error_type is not None:
+                        record["status"] = "ERROR"
+                        record["error_type"] = error_type
+
+            def writeheader(self) -> object:
+                parent = super()
+                return self._e0_time_write(
+                    "writeheader", None, lambda _rows: parent.writeheader()
+                )
+
+            def writerow(self, rowdict: object) -> object:
+                parent = super()
+                return self._e0_time_write(
+                    "writerow", rowdict, lambda row: parent.writerow(row)
+                )
+
+            def writerows(self, rowdicts: object) -> object:
+                parent = super()
+                return self._e0_time_write(
+                    "writerows", rowdicts, lambda rows: parent.writerows(rows)
+                )
+
+        TimedDictWriter.__name__ = original_dict_writer.__name__
+        TimedDictWriter.__qualname__ = original_dict_writer.__qualname__
+        TimedDictWriter.__module__ = original_dict_writer.__module__
+        csv.DictWriter = TimedDictWriter
+        self._original_csv_dict_writer = original_dict_writer
+        self._timed_csv_dict_writer = TimedDictWriter
 
     def _restore_to_csv_wrapper(self) -> None:
         if self._dataframe_type is not None and self._original_to_csv is not None:
             type.__setattr__(self._dataframe_type, "to_csv", self._original_to_csv)
         self._dataframe_type = None
         self._original_to_csv = None
+        if (
+            self._original_csv_dict_writer is not None
+            and csv.DictWriter is self._timed_csv_dict_writer
+        ):
+            csv.DictWriter = self._original_csv_dict_writer
+        self._original_csv_dict_writer = None
+        self._timed_csv_dict_writer = None
 
     def finalize(
         self,
@@ -939,10 +1113,19 @@ class NotebookTelemetryTracker:
                 },
                 "submission_csv_serialization": {
                     "status": "MEASURED" if self._serialization_records else "UNAVAILABLE",
+                    "scope": (
+                        "target serialization/write calls only; DictWriter timing "
+                        "excludes argument construction, graph computation performed "
+                        "between calls, and final stream close/fsync; writerows includes "
+                        "lazy iterable production within its call"
+                    ),
                     "reason": (
                         None
                         if self._serialization_records
-                        else "pandas DataFrame.to_csv target call was not observed"
+                        else (
+                            "pandas DataFrame.to_csv or csv.DictWriter target call "
+                            "was not observed"
+                        )
                     ),
                     "records": self._serialization_records,
                 },

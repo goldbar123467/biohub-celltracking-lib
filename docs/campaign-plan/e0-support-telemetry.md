@@ -136,7 +136,16 @@ behavior. The later
 also passed on eight full-spatial frames: exact detector candidates, solved
 graphs, and logical GEFF content matched between the control and instrumented
 arms. That result closes only the bounded support-path comparison. It does not
-establish complete-notebook output parity, DeepCenter or later postprocessing
-parity, full visible-input coverage, or R4 runtime and memory behavior. The full
-private R4 rehearsal was still running at the latest checkpoint, with no
-downloaded R4 output or telemetry validation accepted yet.
+by itself establish complete-notebook output parity, DeepCenter or later
+postprocessing parity, full visible-input coverage, or R4 runtime and memory
+behavior. The later full R4 rehearsal did provide stronger output evidence:
+independent exact-version validation accepted 465 files. All 12
+detector-coordinate hashes and counts and all 12 logical GEFF graphs matched R3
+exactly; the R4 raw coordinate artifacts were independently rehashed and
+decoded. The 241,400-row CSV was also byte-identical. The overall telemetry
+result still
+failed because submission serialization occurred through uninstrumented
+`csv.DictWriter`, so the required timing is unavailable. Canonical R4 is settled
+`FAILED`; a forthcoming hook remains unrehearsed and does not alter the frozen
+run. See the
+[R4 telemetry differential report](../experiments/e0-r4-telemetry-differential-2026-09-08.md).

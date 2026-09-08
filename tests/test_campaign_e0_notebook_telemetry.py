@@ -564,6 +564,7 @@ def test_harvest_failure_guarantees_sampler_and_callback_cleanup(tmp_path: Path)
     output = tmp_path / "cleanup-on-failure"
     make_evidence(output, missing_retention_frame=True)
     shell = FakeIPython()
+    original_dict_writer = csv.DictWriter
     tracker = NotebookTelemetryTracker(config(output), measured_host, measured_gpu)
     tracker.start(shell)
     for source in ("public-a\n", "public-b\n"):
@@ -575,6 +576,7 @@ def test_harvest_failure_guarantees_sampler_and_callback_cleanup(tmp_path: Path)
     summary = tracker._sampler.stop()
     assert summary["cleanup_complete"] is True
     assert shell.events.callbacks == {"pre_run_cell": [], "post_run_cell": []}
+    assert csv.DictWriter is original_dict_writer
 
 
 def test_sampler_is_bounded_and_cleans_up(tmp_path: Path) -> None:
@@ -872,3 +874,125 @@ def test_targeted_to_csv_wrapper_records_and_restores(tmp_path: Path, monkeypatc
     assert tracker._serialization_records[0]["status"] == "PASS"
     tracker._restore_to_csv_wrapper()
     assert FakeDataFrame.to_csv is original
+
+
+def test_targeted_dict_writer_times_only_writes_and_preserves_csv_bytes(
+    tmp_path: Path, monkeypatch
+) -> None:
+    output = tmp_path / "dict-writer"
+    output.mkdir()
+    target = output / "submission.csv"
+    control = output / "control.csv"
+    other = output / "other.csv"
+    fieldnames = ["id", "dataset", "value"]
+    rows = [
+        {"id": 0, "dataset": "movie-a", "value": "a,b"},
+        {"id": 1, "dataset": "movie-a", "value": 'quoted "value"'},
+        {"id": 2, "dataset": "movie-b", "value": "last"},
+        {"id": 3, "dataset": "movie-b", "value": "bulk"},
+    ]
+    original = csv.DictWriter
+    with control.open("w", encoding="utf-8", newline="") as stream:
+        writer = original(stream, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerow(rows[0])
+        writer.writerow(rows[1])
+        writer.writerows(rows[2:])
+
+    class Clock:
+        value = 0.0
+
+        @classmethod
+        def monotonic(cls) -> float:
+            return cls.value
+
+    class ClockedStream:
+        def __init__(self, stream, path: Path) -> None:
+            self._stream = stream
+            self.name = str(path)
+
+        def write(self, value: str) -> int:
+            Clock.value += 0.25
+            return self._stream.write(value)
+
+    monkeypatch.setattr(
+        "biohub_ct.campaign.e0_notebook_telemetry.time.monotonic",
+        Clock.monotonic,
+    )
+    tracker = NotebookTelemetryTracker(config(output), measured_host, measured_gpu)
+    tracker._install_to_csv_wrapper_if_available()
+
+    with other.open("w", encoding="utf-8", newline="") as raw:
+        writer = csv.DictWriter(ClockedStream(raw, other), fieldnames=fieldnames)
+        writer.writeheader()
+    assert tracker._serialization_records == []
+
+    with target.open("w", encoding="utf-8", newline="") as raw:
+        # The stdlib API accepts ``f`` by keyword; the wrapper must retain that API.
+        writer = csv.DictWriter(f=ClockedStream(raw, target), fieldnames=fieldnames)
+        writer.writeheader()
+        Clock.value += 100.0  # Representative graph postprocessing between writes.
+        first_result = writer.writerow(rows[0])
+        Clock.value += 200.0
+        second_result = writer.writerow(rows[1])
+        Clock.value += 300.0
+
+        def lazy_rows():
+            for row in rows[2:]:
+                Clock.value += 10.0  # Production inside writerows is in scope.
+                yield row
+
+        bulk_result = writer.writerows(lazy_rows())
+
+    assert first_result > 0
+    assert second_result > 0
+    assert bulk_result is None
+    assert target.read_bytes() == control.read_bytes()
+    assert len(tracker._serialization_records) == 1
+    record = tracker._serialization_records[0]
+    assert record["implementation"] == "csv.DictWriter"
+    assert record["status"] == "PASS"
+    # The 600 seconds between calls are excluded. The 20 seconds spent producing
+    # lazy writerows rows are necessarily inside that one timed call.
+    assert record["elapsed_seconds"] == pytest.approx(21.25)
+    assert record["call_count"] == 4
+    assert record["row_count"] == 5
+    assert record["calls_by_method"] == {
+        "writeheader": 1,
+        "writerow": 2,
+        "writerows": 1,
+    }
+    assert "excludes argument construction, graph computation" in str(record["scope"])
+    assert "final stream close/fsync" in str(record["scope"])
+
+    tracker._restore_to_csv_wrapper()
+    assert csv.DictWriter is original
+
+
+def test_targeted_dict_writer_preserves_exception_and_atexit_restores(
+    tmp_path: Path,
+) -> None:
+    output = tmp_path / "dict-writer-error"
+    output.mkdir()
+    target = output / "submission.csv"
+    original = csv.DictWriter
+
+    class FailingStream:
+        name = str(target)
+
+        @staticmethod
+        def write(_value: str) -> int:
+            raise LookupError("controlled write failure")
+
+    tracker = NotebookTelemetryTracker(config(output), measured_host, measured_gpu)
+    tracker._install_to_csv_wrapper_if_available()
+    writer = csv.DictWriter(FailingStream(), fieldnames=["id"])
+    with pytest.raises(LookupError, match="controlled write failure"):
+        writer.writeheader()
+
+    assert tracker._serialization_records[0]["status"] == "ERROR"
+    assert tracker._serialization_records[0]["error_type"] == "LookupError"
+    assert tracker._serialization_records[0]["call_count"] == 1
+    assert tracker._serialization_records[0]["row_count"] == 1
+    tracker._atexit_cleanup()
+    assert csv.DictWriter is original

@@ -1,8 +1,10 @@
 # Kaggle notebook rehearsal launch and recovery
 
-Status: **R3 is operationally complete and settled; one R4 launch is confirmed
-with terminal evidence pending**. Completion, output validation, quality review
-and quota settlement remain separate from launch identity.
+Status: **R3 is operationally complete and settled; the one R4 rehearsal is
+terminal `FAILED` and settled**. Kaggle completed the pinned R4 version, but the
+independent telemetry verifier rejected its missing submission-serialization
+timing. Provider completion, output validation, telemetry acceptance and quota
+settlement remain separate conclusions.
 
 `biohub_ct.campaign.kaggle_rehearsal` controls one private, offline GPU rehearsal of the reviewed E0 package. It uses the existing campaign store for approval, quota reservation, immutable intent, dispatch fencing, launch confirmation, and `LAUNCH_UNKNOWN` recovery. Kaggle remains the run host. This path does not pretend that Kaggle is an SSH worker and does not apply the Vast worker source-copy preflight.
 
@@ -140,9 +142,21 @@ evidence is absent. Validation did not approve or perform a submission.
 After fresh evidence showed 28.41 quota hours remaining and zero active GPU
 jobs, the R4 telemetry differential was admitted with a 6,480-second timeout,
 a 1.980-hour reservation and a protected 26.40-hour final-attempt reserve. One
-push was confirmed as `clarkkitchen/biohub-e0-instrumented-reference/1`. This is
-launch identity only: R4 has no terminal receipt, downloaded-output validation,
-R3 parity result, telemetry-completeness result, runtime-overhead result or
-quota settlement yet. The focused implementation evidence is 47 passing
-release/output tests and 34 passing telemetry tests; provider execution evidence
-is still required before R4 can close.
+push was confirmed as `clarkkitchen/biohub-e0-instrumented-reference/1`.
+Kaggle later reported that exact version complete after 5,706.2 seconds with
+465 output files. Extended-length local access recovered the already successful
+transport proof, and independent validation accepted the frozen release
+identity and structural contracts. The 241,400-row `submission.csv` is
+byte-identical to R3 and the pinned upstream reference. All 12
+detector-coordinate hashes and counts and all 12 logical GEFF graphs matched R3
+exactly; the R4 raw coordinate artifacts were independently rehashed and
+decoded.
+
+The overall telemetry verdict remains `FAIL`: the frozen R4 notebook wrote
+`submission.csv` through `csv.DictWriter`, while its outer timer observed only
+`pandas.DataFrame.to_csv`, so submission-serialization timing is unavailable.
+Canonical state is `FAILED`, the 1.980-hour reservation settled at the
+1.58-hour account-display debit, 26.83 hours remain, and the protected
+26.40-hour reserve remains intact. A follow-up serialization hook has not been
+rehearsed and does not change this frozen historical result. See the
+[R4 telemetry differential report](../experiments/e0-r4-telemetry-differential-2026-09-08.md).

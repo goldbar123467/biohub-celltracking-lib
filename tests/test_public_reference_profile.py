@@ -71,6 +71,11 @@ def test_missing_runtime_is_reported_without_install_attempt() -> None:
 def test_main_writes_blocked_dependency_receipt(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    # This exercises the standalone CLI; a supervising campaign's identity
+    # must not turn its temporary output into an unrelated campaign attempt.
+    for name in profile_module.CAMPAIGN_ENVIRONMENT:
+        monkeypatch.delenv(name, raising=False)
+
     def blocked(_request: ProfileRequest):
         raise UnavailableDependency("torch unavailable; no install attempted")
 

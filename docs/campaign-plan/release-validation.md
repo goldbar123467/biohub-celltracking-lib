@@ -5,10 +5,14 @@ independent check for rehearsal check 5 in `SUBMISSION_RUNBOOK.md`. It is a
 read-only library boundary. It does not download Kaggle output, approve a
 candidate, mutate campaign state, or submit anything.
 
-The September 8 full R3 rehearsal now has executed evidence: all 442
+The September 8 full R3 rehearsal reached terminal `COMPLETE`: all 442
 exact-version output files were downloaded, and the independent identity,
 format, scorer-compatibility and lineage checks passed. The 241,400-row CSV
-is also byte-identical to the upstream reference. Quality and resource
+is byte-identical to the upstream reference. The terminal reconciliation
+settled the reservation at the 1.41-hour account-display change; its receipt
+SHA-256 is
+`b111ae1752f21c24c287f75116a980ad79af74898ed2c8a7726f60be5d67710e`.
+Quality and resource
 admission remain separate: the frozen upstream manifest omits required
 scientific and resource fields, so those gates remain blocked.
 
@@ -120,6 +124,11 @@ blend-retention guard fails; it is not a fabricated output node. Empty output
 fails closed. Frame-cap branches are silent, so the current run manifest cannot
 support a zero-cap claim.
 
-There is no downloaded E0 rehearsal output at this checkpoint. Unit tests use
-clearly synthetic, self-contained fixtures to exercise the contract. Passing
-those tests proves validator behavior, not operational E0 completion.
+The executed R3 evidence and its limits are recorded in the
+[full-rehearsal report](../experiments/e0-kaggle-full-rehearsal-2026-09-08.md).
+The accepted independent result is
+`reports/campaigns/e0-r3-kaggle-full-20260908-01/independent-validation-v1/validation-result.json`;
+the earlier result under `download-validation-v1` is a preserved failed attempt,
+not the accepted validation. Unit tests use clearly synthetic, self-contained
+fixtures to exercise the same contract. Their passing status proves validator
+behavior separately from the operational R3 evidence.

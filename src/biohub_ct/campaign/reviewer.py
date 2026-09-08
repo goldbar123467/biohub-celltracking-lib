@@ -169,6 +169,19 @@ def review_once(store: CampaignStore, kaggle: KaggleCLI, config: ReviewConfig,
                     decisions.append({"decision": "BLOCKED", "intent_id": intent["intent_id"],
                         "reason": "Submission is uncertain; no unique matching account receipt. Reservation retained."})
             else:
+                run = store.get_run(intent["subject_id"])
+                if run["spec"].get("execution", {}).get("host") == "kaggle":
+                    decisions.append({
+                        "decision": "DEFER_PROVIDER_RECONCILIATION",
+                        "intent_id": intent["intent_id"],
+                        "run_id": run["run_id"],
+                        "reason": (
+                            "Kaggle launch uncertainty requires its exact-version provider "
+                            "operator; generic worker receipts were ignored and the reservation "
+                            "retained"
+                        ),
+                    })
+                    continue
                 # The provider observation must contain an authenticated, exact
                 # intent receipt. No process-name matching or guessed PID ownership.
                 receipts = live.get("launch_receipts", {})
@@ -201,6 +214,17 @@ def review_once(store: CampaignStore, kaggle: KaggleCLI, config: ReviewConfig,
 
         for run in store.list_runs():
             if run["state"] != "RUNNING":
+                continue
+            if run["spec"].get("execution", {}).get("host") == "kaggle":
+                decisions.append({
+                    "decision": "DEFER_PROVIDER_RECONCILIATION",
+                    "run_id": run["run_id"],
+                    "reason": (
+                        "Kaggle run state requires its exact-version provider operator and "
+                        "terminal reconciler; generic worker evidence was ignored and the "
+                        "reservation retained"
+                    ),
+                })
                 continue
             completion = live.get("worker_completions", {}).get(run["run_id"])
             if completion is not None:

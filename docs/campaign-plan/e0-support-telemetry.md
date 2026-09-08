@@ -131,7 +131,12 @@ public-source reconstruction is present, an additional test patches its exact
 bytes, checks all anchors, and parses the final AST.
 
 This establishes source identity, compilation and minimal executed telemetry
-behavior. It does not establish identical real-model tensors, coordinates,
-graphs, GEFF bytes, GPU runtime or memory use. The instrumented package still
-needs a bounded differential rehearsal against the uninstrumented pinned path
-before release admission.
+behavior. The later
+[bounded real-model differential](../experiments/e0-model-graph-parity-2026-09-08.md)
+also passed on eight full-spatial frames: exact detector candidates, solved
+graphs, and logical GEFF content matched between the control and instrumented
+arms. That result closes only the bounded support-path comparison. It does not
+establish complete-notebook output parity, DeepCenter or later postprocessing
+parity, full visible-input coverage, or R4 runtime and memory behavior. The full
+private R4 rehearsal was still running at the latest checkpoint, with no
+downloaded R4 output or telemetry validation accepted yet.

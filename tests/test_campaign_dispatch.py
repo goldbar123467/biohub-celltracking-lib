@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import shutil
+import threading
 from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
@@ -456,6 +457,32 @@ def test_retrieve_completed_downloads_exact_files_with_hash_and_size_checks(tmp_
     # A read-only reconciliation reuses only bytes matching fresh remote hashes.
     transport.retrieve_completed(spec, completion, destination)
     assert len(runner.calls) == 6
+
+
+def test_retrieve_prepares_all_parents_before_worker_path_resolution(tmp_path, monkeypatch):
+    spec, completion, remote = completed_download_fixture(tmp_path)
+    runner = RetrievalRunner(remote)
+    transport = ExistingVastTransport(
+        tmp_path / "ssh.config", "/remote/root", runner=runner
+    )
+    destination = tmp_path / "downloaded"
+    expected_parents = {
+        destination / "reports/campaign-workers/run-1",
+        destination / "reports/campaign-workers/run-1/worker",
+    }
+    main_thread = threading.current_thread()
+    resolve = Path.resolve
+
+    def require_prepared_parents(path, *args, **kwargs):
+        if threading.current_thread() is not main_thread and destination in path.parents:
+            assert all(parent.is_dir() for parent in expected_parents)
+        return resolve(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "resolve", require_prepared_parents)
+
+    transport.retrieve_completed(spec, completion, destination)
+
+    assert all(parent.is_dir() for parent in expected_parents)
 
 
 def test_retrieve_rejects_attempt_path_escape_before_network(tmp_path):

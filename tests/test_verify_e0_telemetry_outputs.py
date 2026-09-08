@@ -13,9 +13,10 @@ from biohub_ct.campaign.e0_notebook_telemetry import (
     NotebookTelemetryConfig,
     harvest_e0_telemetry,
 )
+from e0_package_fixtures import SyntheticE0Package, build_e0_package
 
 ROOT = Path(__file__).resolve().parents[1]
-PACKAGE = ROOT / "work/e0-reference/package-r4-title-fixed-a"
+PACKAGE = Path("synthetic-package-is-installed-by-fixture")
 PRODUCTION_ROOT = "/kaggle/input/biohub-cell-tracking-during-development/test"
 STAGES = (
     "data_read",
@@ -27,6 +28,14 @@ STAGES = (
     "ilp",
     "geff",
 )
+
+
+@pytest.fixture(autouse=True)
+def synthetic_r4_package(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> SyntheticE0Package:
+    package = build_e0_package(tmp_path / "package-fixture", generation="r4")
+    monkeypatch.setattr(verifier, "E0_R4_PACKAGE_IDENTITY", package.identity)
+    monkeypatch.setitem(globals(), "PACKAGE", package.path)
+    return package
 
 
 def sha256(path: Path) -> str:
@@ -810,6 +819,25 @@ def test_report_path_must_be_new_and_outside_evidence_tree(tmp_path: Path) -> No
             output_dir=output,
             package_dir=PACKAGE,
             report_json=output / "report.json",
+            harvester=fake_harvester(output),
+        )
+
+
+def test_tampered_package_source_is_rejected_before_evidence_validation(
+    tmp_path: Path, synthetic_r4_package: SyntheticE0Package
+) -> None:
+    output = make_output(tmp_path)
+    with (synthetic_r4_package.path / "submission.ipynb").open("a", encoding="utf-8") as stream:
+        stream.write(" ")
+
+    with pytest.raises(
+        verifier.TelemetryVerificationError,
+        match="does not match compiled E0 R4 identity",
+    ):
+        verifier.verify_downloaded_e0_telemetry(
+            output_dir=output,
+            package_dir=synthetic_r4_package.path,
+            report_json=tmp_path / "must-not-exist.json",
             harvester=fake_harvester(output),
         )
 

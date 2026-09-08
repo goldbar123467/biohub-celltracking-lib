@@ -167,3 +167,145 @@ def test_download_filesystem_failure_retains_run_and_reservation(tmp_path):
     assert store.get_run("run-1")["state"] == "RUNNING"
     assert store.budget_snapshot("compute").outstanding_reservations == Decimal(1)
     assert account.mutations == 0
+
+
+def _kaggle_store(tmp_path, *, confirm: bool):
+    from test_campaign_dispatch import ready_store, run_spec
+
+    store = ready_store(tmp_path)
+    spec = run_spec()
+    spec["execution"]["host"] = "kaggle"
+    spec["execution"].pop("provider_instance_id")
+    spec["kaggle_rehearsal"] = {
+        "notebook_slug": "owner/exact-version-rehearsal",
+        "notebook_version": 1,
+    }
+    registered = store.register_run(spec)
+    with store.review_lock("launch-reviewer") as lease:
+        intent = store.authorize_launch(
+            "run-1",
+            decision_id="decision-run-1",
+            reviewer="launch-reviewer",
+            reservations=[{
+                "ledger_id": "compute",
+                "reservation_id": "compute-run-1",
+                "amount": "1",
+            }],
+            reason="bounded provider-specific reviewer fixture",
+            intent_id="launch-run-1",
+            request_id="request-run-1",
+            description_tag="run-1",
+            fencing_token=lease.fencing_token,
+        )
+        store.validate_dispatch(
+            intent["intent_id"],
+            "run-1",
+            registered["run_spec_sha256"],
+            lease.fencing_token,
+        )
+        if confirm:
+            store.confirm_launch(
+                intent["intent_id"],
+                provider_job_id="kaggle-kernel-owner/exact-version-rehearsal/1",
+                receipt={"provider": "kaggle", "notebook_version": 1},
+            )
+        else:
+            store.mark_intent_unknown(
+                intent["intent_id"], receipt={"reason": "provider receipt unavailable"}
+            )
+    return store, registered, store.get_intent(intent["intent_id"])
+
+
+def test_kaggle_run_defers_to_provider_reconciler_and_ignores_worker_evidence(tmp_path):
+    store, registered, intent = _kaggle_store(tmp_path, confirm=True)
+    account = Account()
+    downloads = []
+    forged_completion = {
+        "run_id": "run-1",
+        "run_spec_sha256": registered["run_spec_sha256"],
+        "fencing_token": intent["fencing_token"],
+        "status": "COMPLETE",
+    }
+
+    result = review_once(
+        store,
+        account,
+        ReviewConfig("reviewer", tmp_path, tmp_path / "reviews"),
+        inventory=lambda: {
+            "observed_at": datetime.now(UTC).isoformat(),
+            "launch_receipts": {
+                intent["intent_id"]: {
+                    "run_spec_sha256": registered["run_spec_sha256"],
+                    "fencing_token": intent["fencing_token"],
+                    "process_alive": True,
+                },
+            },
+            "worker_heartbeats": {
+                "run-1": {
+                    "run_spec_sha256": registered["run_spec_sha256"],
+                    "fencing_token": intent["fencing_token"],
+                    "observed_at": datetime.now(UTC).isoformat(),
+                },
+            },
+            "worker_completions": {"run-1": forged_completion},
+        },
+        download_completion=lambda *_args: downloads.append(_args),
+    )
+
+    decision = next(row for row in result["decisions"] if row["run_id"] == "run-1")
+    assert decision["decision"] == "DEFER_PROVIDER_RECONCILIATION"
+    assert "exact-version provider operator" in decision["reason"]
+    assert downloads == []
+    assert store.get_run("run-1")["state"] == "RUNNING"
+    assert store.budget_snapshot("compute").outstanding_reservations == Decimal(1)
+    assert account.mutations == 0
+
+
+def test_unchanged_kaggle_provider_deferral_notifies_only_once(tmp_path):
+    store, _registered, _intent = _kaggle_store(tmp_path, confirm=True)
+    account = Account()
+    config = ReviewConfig("reviewer", tmp_path, tmp_path / "reviews")
+    provider_inventory = lambda: {
+        "observed_at": datetime.now(UTC).isoformat(),
+        "launch_receipts": {},
+    }
+
+    first = review_once(store, account, config, inventory=provider_inventory)
+    second = review_once(store, account, config, inventory=provider_inventory)
+
+    assert first["notify"] is True
+    assert second["notify"] is False
+    assert first["decisions"] == second["decisions"]
+    assert store.get_run("run-1")["state"] == "RUNNING"
+    assert store.budget_snapshot("compute").outstanding_reservations == Decimal(1)
+    assert account.mutations == 0
+
+
+def test_unknown_kaggle_launch_ignores_generic_worker_receipt(tmp_path):
+    store, registered, intent = _kaggle_store(tmp_path, confirm=False)
+    account = Account()
+
+    result = review_once(
+        store,
+        account,
+        ReviewConfig("reviewer", tmp_path, tmp_path / "reviews"),
+        inventory=lambda: {
+            "observed_at": datetime.now(UTC).isoformat(),
+            "launch_receipts": {
+                intent["intent_id"]: {
+                    "run_spec_sha256": registered["run_spec_sha256"],
+                    "fencing_token": intent["fencing_token"],
+                    "provider_job_id": "linux-supervisor-forged",
+                    "process_alive": True,
+                },
+            },
+        },
+    )
+
+    decision = next(row for row in result["decisions"] if row.get("intent_id") == intent["intent_id"])
+    assert decision["decision"] == "DEFER_PROVIDER_RECONCILIATION"
+    assert "generic worker receipts were ignored" in decision["reason"]
+    assert store.get_intent(intent["intent_id"])["state"] == "UNKNOWN"
+    assert store.get_run("run-1")["state"] == "LAUNCH_UNKNOWN"
+    assert store.budget_snapshot("compute").outstanding_reservations == Decimal(1)
+    assert account.mutations == 0

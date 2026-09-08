@@ -4,6 +4,7 @@ import hashlib
 import json
 import subprocess
 import sys
+from dataclasses import asdict
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -13,9 +14,27 @@ from scripts import verify_kaggle_reference_outputs as operator
 from biohub_ct.campaign.kaggle_rehearsal import E0_R3_PACKAGE_IDENTITY
 from biohub_ct.campaign.rehearsal_packages import E0_R4_PACKAGE_IDENTITY
 from biohub_ct.config import SUBMISSION_COLUMNS
+from e0_package_fixtures import SyntheticE0Package, build_e0_package
 
 ROOT = Path(__file__).resolve().parents[1]
-PACKAGE = ROOT / "work/e0-reference/package-r3"
+PACKAGE = Path("synthetic-package-is-installed-by-fixture")
+
+
+@pytest.fixture(autouse=True)
+def synthetic_packages(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> dict[str, SyntheticE0Package]:
+    packages = {
+        generation: build_e0_package(tmp_path / "package-fixtures", generation=generation)
+        for generation in ("r3", "r4")
+    }
+    monkeypatch.setitem(globals(), "PACKAGE", packages["r3"].path)
+    monkeypatch.setitem(globals(), "E0_R3_PACKAGE_IDENTITY", packages["r3"].identity)
+    monkeypatch.setitem(globals(), "E0_R4_PACKAGE_IDENTITY", packages["r4"].identity)
+    monkeypatch.setattr(
+        operator, "reviewed_package", lambda generation: packages[generation].identity
+    )
+    return packages
 
 
 def sha256(path: Path) -> str:
@@ -205,6 +224,8 @@ def test_package_nested_destination_is_rejected_without_writing() -> None:
         [
             "--destination",
             str(PACKAGE / "operator-result"),
+            "--package-dir",
+            str(PACKAGE),
             "--proof-json",
             str(PACKAGE / "package-manifest.json"),
             "--submission-csv",
@@ -448,6 +469,21 @@ def test_atomic_writer_refuses_temporary_collision_created_during_validation(
     assert not (tmp_path / "result/validation-result.json").exists()
 
 
+def test_tampered_package_manifest_fails_final_identity_recheck(tmp_path: Path) -> None:
+    args, files = local_args(tmp_path)
+
+    def validate(submission, manifest, package, **kwargs):
+        with (package / "package-manifest.json").open("a", encoding="utf-8") as stream:
+            stream.write(" ")
+        return ValidationResult(submission, manifest)
+
+    output = operator.execute(args, release_validator=validate)
+    assert output["result"]["status"] == "ERROR"
+    assert output["result"]["failure_stage"] == "FINAL_IDENTITY_RECHECK"
+    assert output["result"]["error_type"] == "RehearsalError"
+    assert files["submission"].read_text() == "fixture\n"
+
+
 def make_real_r3_evidence(tmp_path: Path) -> tuple[Path, Path, Path]:
     lock = json.loads((PACKAGE / "artifact-lock.json").read_text())
     submission = tmp_path / "submission.csv"
@@ -530,15 +566,42 @@ def make_real_r3_evidence(tmp_path: Path) -> tuple[Path, Path, Path]:
     return proof_path, submission, manifest_path
 
 
-def test_actual_cli_subprocess_validates_local_r3_fixture(tmp_path: Path) -> None:
+def test_actual_cli_subprocess_validates_local_r3_fixture(
+    tmp_path: Path, synthetic_packages: dict[str, SyntheticE0Package]
+) -> None:
     proof, submission, manifest = make_real_r3_evidence(tmp_path)
     destination = tmp_path / "cli-result"
+    driver = tmp_path / "synthetic_cli_driver.py"
+    driver.write_text(
+        """\
+import json
+import sys
+from pathlib import Path
+
+sys.path.insert(0, sys.argv[1])
+sys.path.insert(0, str(Path(sys.argv[1]) / "src"))
+from biohub_ct.campaign.kaggle_rehearsal import PackageIdentity
+from scripts import verify_kaggle_reference_outputs as operator
+
+raw = json.loads(sys.argv[2])
+raw["dataset_versions"] = tuple(tuple(row) for row in raw["dataset_versions"])
+identity = PackageIdentity(**raw)
+operator.reviewed_package = lambda generation: identity
+raise SystemExit(operator.main(sys.argv[3:]))
+""",
+        encoding="utf-8",
+        newline="\n",
+    )
     completed = subprocess.run(
         [
             sys.executable,
-            str(ROOT / "scripts/verify_kaggle_reference_outputs.py"),
+            str(driver),
+            str(ROOT),
+            json.dumps(asdict(synthetic_packages["r3"].identity), sort_keys=True),
             "--destination",
             str(destination),
+            "--package-dir",
+            str(synthetic_packages["r3"].path),
             "--proof-json",
             str(proof),
             "--submission-csv",

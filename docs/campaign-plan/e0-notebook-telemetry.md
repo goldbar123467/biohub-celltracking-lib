@@ -16,7 +16,18 @@ The module covers:
 - a self-contained standard-library runtime that a packager can embed in a prepended cell;
 - a finalizer that preserves existing elapsed fields and adds a distinct telemetry record to the existing run manifest.
 
-Support-script stage instrumentation and the narrowly scoped `subprocess.Popen` interception are separate integration work. The outer sampler cannot attribute asynchronous GPU work to model, peak extraction, pair scoring, ILP, or GEFF serialization.
+Support-script stage instrumentation and the narrowly scoped `subprocess.Popen`
+interception are separate modules integrated by the
+[instrumented package](instrumented-public-reference-package.md). The outer
+sampler cannot attribute asynchronous GPU work to model, peak extraction, pair
+scoring, ILP, or GEFF serialization.
+
+The later bounded eight-frame real-model differential passed for exact detector
+candidates, solved graphs, and logical GEFF content. The full private R4 run was
+still running at the latest checkpoint. No downloaded R4 telemetry,
+complete-output parity, runtime-overhead, or resource-admission result is claimed
+until that run reaches a terminal state and its exact output passes independent
+validation.
 
 ## API
 
@@ -151,4 +162,11 @@ The finalizer does not overwrite legacy `elapsed_seconds` or `full_runtime_secon
 
 The support telemetry patcher emits one raw coordinate artifact per dataset and one matching JSONL event using the schema above. Coordinates use original-voxel `(t,z,y,x)` order and canonical contiguous `<i2` bytes. The support patcher owns exact inner-stage timers, pair counts, ILP returned/raised outcome, GEFF serialization evidence, and per-process CUDA/host peak records. The outer harvester requires every selected dataset summary and coordinate event to agree field-for-field, every selected invocation to return exactly once, and every selected process summary to name exactly that invocation.
 
-Because source cell 4 applies its dynamic support patch and launches subprocesses in the same cell, an extra notebook cell cannot run between those actions. The packager integration must install a narrowly scoped launch interceptor before cell 4. It should act only on the reviewed prediction entry point and repository path, complete the exact hash-chain/anchor patch immediately before process creation, preserve arguments and return values, and restore the original callable. This module deliberately does not install that interceptor.
+Because source cell 4 applies its dynamic support patch and launches subprocesses
+in the same cell, an extra notebook cell cannot run between those actions. The
+instrumented packager installs a narrowly scoped launch interceptor before cell
+4. It acts only on the reviewed prediction entry point and repository path,
+completes the exact hash-chain/anchor patch immediately before process creation,
+preserves arguments and return values, and restores the original callable. This
+module supplies the outer telemetry runtime and deliberately does not install
+that interceptor by itself.

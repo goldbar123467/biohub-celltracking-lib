@@ -83,17 +83,38 @@ print(json.dumps(result))
         if total > limit:
             raise AdmissionError("Artifact inventory exceeds approved size bound")
         destination.mkdir(parents=True, exist_ok=True)
+        download_root = destination.resolve(strict=True)
+        prepared: dict[str, Path] = {}
+        # Resolve and create overlapping parent paths before starting worker
+        # threads. Concurrent resolve/mkdir calls can produce inconsistent
+        # containment results on Windows even when every lexical path is safe.
+        for name in files:
+            local = download_root.joinpath(*PurePosixPath(name).parts)
+            # Check existing ancestors before mkdir so an attacker-controlled
+            # symlink cannot redirect parent creation outside the root.
+            if not local.resolve().is_relative_to(download_root):
+                raise AdmissionError("Local artifact path escapes download root")
+            local.parent.mkdir(parents=True, exist_ok=True)
+            if not local.parent.resolve(strict=True).is_relative_to(download_root):
+                raise AdmissionError("Local artifact parent escapes download root")
+            if os.path.lexists(local) and (
+                local.is_symlink()
+                or not local.is_file()
+                or not local.resolve(strict=True).is_relative_to(download_root)
+            ):
+                raise AdmissionError("Unsafe existing local artifact path")
+            prepared[name] = local
+
         def download_one(name: str) -> int:
-            local = destination / name
-            if not local.resolve().is_relative_to(destination.resolve()):
+            local = prepared[name]
+            if not local.resolve().is_relative_to(download_root):
                 raise AdmissionError("Local artifact path escapes download root")
             if (local.is_file() and not local.is_symlink()
                     and local.stat().st_size == described[name]["bytes"]
                     and file_sha256(local) == described[name]["sha256"]):
                 return local.stat().st_size
-            local.parent.mkdir(parents=True, exist_ok=True)
             temporary = local.with_name(local.name + ".download")
-            if os.path.lexists(temporary) or not temporary.resolve().is_relative_to(destination.resolve()):
+            if os.path.lexists(temporary) or not temporary.resolve().is_relative_to(download_root):
                 raise AdmissionError("Unsafe temporary artifact path outside download root")
             # Reserve a fresh inode. Never let scp truncate an existing hardlink.
             try:

@@ -6,7 +6,12 @@ Date: 2026-09-08
 
 The frozen E0 R3 package does not provide enough telemetry to support an operational claim about hidden-test runtime or memory headroom. It is suitable as a byte-identified reproduction package, but it records only a notebook-internal elapsed value, a total production-prediction duration, output structure, and selected aggregate counts. It does not measure the required setup, data-read, model, candidate-extraction, pair-scoring, solver, serialization, and validation stages separately, and it records no peak host RAM or GPU memory.
 
-No new execution is implied by this audit. The R3 package remains frozen and unlaunched.
+This section records the pre-execution decision at the time of the audit; no new
+execution was implied then, and the R3 package was frozen and unlaunched. R3 was
+subsequently run once and reached terminal `COMPLETE`. Its exact-version output
+validation and 1.41-hour quota settlement are recorded in the
+[full-rehearsal report](../experiments/e0-kaggle-full-rehearsal-2026-09-08.md).
+That later execution does not add the telemetry fields found missing here.
 
 ## Audited identities and citation convention
 
@@ -39,7 +44,7 @@ R3's appended wrapper starts `_E0_STARTED_MONOTONIC` in its prepended cell (`scr
 
 That value is a **wrapper elapsed time**, not a provider-complete elapsed time. The clock starts only after the Kaggle kernel has begun executing notebook code. The value is captured before the CUDA environment probe and before the run manifest is serialized (`scripts/package_public_reference.py:495-509`). It therefore excludes at least provider queue/startup time and the final CUDA-probe/manifest-write/notebook-conversion tail. The field name `full_runtime_seconds` overstates its scope.
 
-The source manifest separately records the provider-displayed runtime `1h 21m 41s` (`work/e0-reference/package-r3/package-manifest.json:99-107`). That is a **provider-complete display value for the upstream source run**, not a measurement from the unlaunched R3 package. The two values must remain separate in any future schema:
+The source manifest separately records the provider-displayed runtime `1h 21m 41s` (`work/e0-reference/package-r3/package-manifest.json:99-107`). That is a **provider-complete display value for the upstream source run**, not a measurement from R3 as audited before its later rehearsal. The two values must remain separate in any future schema:
 
 - `wrapper_elapsed_seconds`: first prepended wrapper statement through the final wrapper's capture point.
 - `cell_elapsed_seconds`: individual notebook-cell callback duration.
@@ -102,13 +107,21 @@ The upstream log contains timestamped events. Subtracting event timestamps gives
 
 These are **retrospective estimates of phase spans**. The timestamps themselves were emitted by the run, but the phase labels are inferred from sparse boundary messages. A span can include unlogged work, synchronization, scheduling, serialization, or idle time. It is invalid to treat this table as direct component profiling or to sum overlapping spans as independent costs.
 
-The final log timestamp is 4,900.833 seconds (`biohub-942tta.log:3641`), close to the provider display of 4,901 seconds. This corroborates the upstream wall duration. It does not validate R3 timing because R3 was never launched.
+The final log timestamp is 4,900.833 seconds (`biohub-942tta.log:3641`), close to the provider display of 4,901 seconds. This corroborates the upstream wall duration. It did not validate R3 timing at this audit checkpoint because R3 had not yet launched. The later R3 rehearsal reported 5,076.3 provider seconds and 5,057.298734274 wrapper seconds; those remain different scopes and do not repair the missing stage and memory telemetry.
 
 Against an assumed 12-hour limit, 4,901 seconds would leave 38,299 seconds, or 10:38:19, and 88.7% arithmetic headroom. A 25% reserve on 4,901 seconds is 1,225.25 seconds, producing a 6,126.25-second planning budget. These are **retrospective arithmetic estimates against an unrefreshed assumption**, not measured current limits or hidden-test headroom. The runbook requires sufficient wall and memory headroom (`SUBMISSION_RUNBOOK.md:23-28`), while `GPU_OPERATIONS.md:71-75` requires stage timing, peak RAM/VRAM, actual frame/tile and candidate-edge counts, measured tail behavior, and an explicitly estimated reserve. R3 cannot meet that contract.
 
 ## Minimum additive instrumentation while preserving all 12 public cell sources
 
 An opt-in package can preserve the exact bytes and hashes of all 12 public cells by adding wrapper cells and a standalone telemetry module. The existing R3 default path should remain byte-identical. The instrumented package should use a new release identity and record every added cell and runtime source mutation.
+
+The design below was subsequently implemented as the title-fixed R4 package.
+Its bounded eight-frame real-model differential passed for exact detector
+candidates, solved graphs, and logical GEFF content; see the
+[model/graph parity report](../experiments/e0-model-graph-parity-2026-09-08.md).
+That result covers only the bounded support path. The full private R4 rehearsal
+was still running at the latest checkpoint, so no downloaded R4 telemetry,
+complete-output parity, runtime-overhead, or resource-admission result is claimed.
 
 ### Outer notebook instrumentation
 

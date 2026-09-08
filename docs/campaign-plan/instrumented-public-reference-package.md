@@ -4,11 +4,16 @@ Date: 2026-09-08
 
 Current execution: the title-fixed R4 package was launched once as private,
 offline `clarkkitchen/biohub-e0-instrumented-reference/1` on September 8 at
-08:51 UTC. Its exact push receipt is CONFIRMED; execution and downloaded
-telemetry validation remain pending. The 6,480-second timeout reserves 1.98
+08:51 UTC. Its exact push receipt is CONFIRMED. At the latest root handoff it
+was still running after approximately 74 minutes; no terminal result or
+downloaded R4 output had been accepted. Telemetry validation, complete-output
+parity, runtime overhead, and quota settlement therefore remain pending. The
+6,480-second timeout reserves 1.98
 quota hours while protecting 26.40 hours. Admission followed the completed R3
 reproduction, whose 241,400-row CSV is byte-identical to the upstream artifact.
-No model-quality admission follows from either launch or this reproduction.
+R3's terminal reconciliation settled at the 1.41-hour account-display change;
+see the [full R3 rehearsal report](../experiments/e0-kaggle-full-rehearsal-2026-09-08.md).
+No model-quality admission follows from either launch or the R3 reproduction.
 
 `scripts/verify_e0_telemetry_outputs.py` independently checks downloaded R4
 cell order and source hashes, callback cleanup, outer manifest binding,
@@ -98,8 +103,10 @@ retrieval and differential release review before admission.
 
 ## Root verification against the actual pinned inputs
 
-This section records the earlier candidate build. The current title-fixed source
-generation is recorded below; neither build has completed a full Kaggle rehearsal.
+This section records the earlier candidate build and its status at that time.
+The current title-fixed source generation is recorded below. The title-fixed R4
+package was later launched once; its current status is stated at the top of this
+document.
 
 The root built the candidate twice from the three downloaded pinned archives
 and original V1 notebook. All four output files matched between builds. The 12
@@ -172,6 +179,9 @@ overrides remain unavailable. The real R4 CLI preflight returned
 
 Root verification passed 14 instrumented-builder tests and 25 operator tests.
 An independent combined builder/base-builder review passed 23 tests with one
-existing platform skip. Full R4 execution, final-output differential comparison,
-telemetry verification and resource admission remain pending the active R3
-rehearsal and a fresh quota observation.
+existing platform skip. R3 subsequently completed and settled. R4 was then
+launched once and remained running at the latest checkpoint. Its terminal
+receipt, downloaded-output differential, telemetry verification, runtime
+overhead, resource admission, and quota settlement remain pending; the bounded
+eight-frame support-path parity result above is not a substitute for those
+full-run checks.
